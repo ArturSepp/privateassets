@@ -1,0 +1,33 @@
+# --- Private, untracked sub-trees: developed alongside, never part of the public package ---
+/projects/
+/data/
+
+# --- Generated outputs ---
+/outputs/*
+!/outputs/.gitkeep
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.ipynb_checkpoints/
+
+# --- LaTeX build artifacts ---
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.synctex.gz
+*.toc
+*.fls
+*.fdb_latexmk
+
+# --- OS / IDE ---
+.DS_Store
+.idea/
+chat_files.zip

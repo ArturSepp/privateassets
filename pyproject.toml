@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "privateassets"
+version = "0.0.1"
+description = "Quantitative analytics for private-asset returns: multi-factor money-weighted PME (MATF), unsmoothing, and risk-adjusted performance estimation."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Artur Sepp" }]
+keywords = ["private equity", "private credit", "private assets", "PME", "direct alpha", "risk-adjusted returns", "unsmoothing"]
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "matplotlib",
+    "cvxpy",
+    "openpyxl",
+    "qis",
+    "factorlasso",
+]
+
+[project.urls]
+Homepage = "https://github.com/ArturSepp/privateassets"
+
+[tool.setuptools.packages.find]
+include = ["privateassets*"]
