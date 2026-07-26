@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.2.0 (2026-07-26)
+
+**`factorlasso` shipped a breaking rename that silently disabled the estimator.**
+The extracted code called `LassoModelType.GROUP_LASSO_CLUSTERS`, which does not
+exist in `factorlasso` 0.10.1 — the member is now
+`HIERARCHICAL_CLUSTER_GROUP_LASSO`. Any caller of the old estimator raised
+`AttributeError` before reaching the fit. Confirmed against the installed
+package rather than inferred.
+
+### Added
+
+- `fit_factor_betas` — sign-constrained, cluster-shrunk factor loadings, the
+  `beta` the deflator needs. 0.1.0 shipped `matf_deflator` with no way to
+  produce its own input; this closes that gap and makes the package usable end
+  to end.
+- `FactorBetas` — frozen result container carrying the loadings, the economic
+  intercept, the observation count, the in-sample factor covariance and the
+  signs `factorlasso` derived.
+- `SignConstraint` — string enum (`POS`, `NEG`, `ZERO`, `FREE`) replacing the
+  bare string sign mask.
+- 15 tests, including recovery of a known loading vector, that each sign
+  constraint binds rather than passing vacuously, that a heavier penalty shrinks
+  towards the origin, and that the estimator's output feeds the deflator without
+  adaptation.
+
+### Changed
+
+- `fit_signed_ridge` is renamed `fit_factor_betas`. The old name described
+  neither the penalty (a hierarchical cluster group lasso, not a ridge) nor the
+  return value.
+- **The shrinkage prior has no default.** The extracted code carried
+  `{'Private Equity': 0.5}`, an unattributed house view that materially moves the
+  loading. It is now a caller argument defaulting to zero.
+- `span_freq_dict` and the warm-up are arguments rather than hardcoded
+  production constants.
+- The covariance is named `sigma_quarterly_insample`, because it is full-sample
+  and feeding it to a deflator applied at a date is look-ahead. Use
+  `rolling_ewma_quarterly_covar` there.
+- `r2` is NaN when `factorlasso` does not report one. The previous fallback
+  computed an unweighted in-sample R-squared against a span-weighted fit, which
+  is a different statistic.
+- `factorlasso` is imported lazily, so the core PME and deflator paths install
+  and run without the `[factors]` extra.
+
+### Removed
+
+- The unused `cvxpy` import, and the module docstring's claim that the estimator
+  is "cvxpy for sign-constrained ridge regression". It has been a `factorlasso`
+  wrapper for some time.
+
 ## 0.1.0 (2026-07-26)
 
 **The public surface is narrower than 0.0.1 advertised.** The estimation

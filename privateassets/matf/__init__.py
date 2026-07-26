@@ -12,6 +12,8 @@ Two layers:
 - the MATF deflator (``matf_deflator``) with its point-in-time factor
   covariance, and ``vintage_direct_alpha``, which turns any deflator path into
   an annualised alpha
+- sign-constrained, cluster-shrunk factor loadings (``fit_factor_betas``), which
+  produce the ``beta`` the deflator needs. Requires the ``[factors]`` extra.
 
 Unsmoothing lives in ``qis``. Estimate the AR(1) coefficient here with
 ``fit_panel_ar1``, then apply it with
@@ -42,6 +44,15 @@ from privateassets.matf._deflator import (
     factor_monthly_log_returns,
     matf_deflator,
     rolling_ewma_quarterly_covar,
+)
+from privateassets.matf._betas import (
+    DEFAULT_REG_LAMBDA,
+    DEFAULT_SPAN,
+    DEFAULT_SPAN_FREQ,
+    DEFAULT_WARMUP_PERIOD,
+    FactorBetas,
+    SignConstraint,
+    fit_factor_betas,
 )
 from privateassets.matf._panel_mle import (
     MIN_OBS_FOR_THETA,
@@ -75,6 +86,14 @@ __all__ = [
     'closest_or_default_sigma',
     'DEFAULT_COVAR_SPAN_MONTHS',
     'DEFAULT_BURNIN_MONTHS',
+    # factor loadings
+    'fit_factor_betas',
+    'FactorBetas',
+    'SignConstraint',
+    'DEFAULT_REG_LAMBDA',
+    'DEFAULT_SPAN',
+    'DEFAULT_WARMUP_PERIOD',
+    'DEFAULT_SPAN_FREQ',
     # unsmoothing coefficient
     'fit_panel_ar1',
     'panel_ar1_neg_log_likelihood',

@@ -40,8 +40,25 @@ alpha = direct_alpha(cf_dates=cf['date'], cf_amounts=cf['amount'],
                      rvpi_nav=nav, rvpi_date=nav_date, bench_idx=benchmark_levels)
 ```
 
-The multi-factor measure replaces the benchmark index with a deflator path and
-solves the same root-finding step:
+Factor loadings come from the shrinkage estimator. The panel is short and the
+factors are collinear, so an unconstrained least-squares beta is not usable:
+
+```python
+from privateassets.matf import SignConstraint, fit_factor_betas
+
+fit = fit_factor_betas(asset_returns=quarterly_returns,
+                       factor_returns=quarterly_factor_returns,
+                       sign_constraints={'Equity': SignConstraint.POS,
+                                         'Credit': SignConstraint.POS},
+                       span=None)          # equal weights for in-sample identification
+beta = fit.beta.values
+```
+
+Needs the `[factors]` extra. The shrinkage target defaults to zero — a non-zero
+prior is an economic view, so it is yours to pass, not the library's to assume.
+
+The multi-factor measure then replaces the benchmark index with a deflator path
+and solves the same root-finding step:
 
 ```python
 import numpy as np
@@ -131,10 +148,13 @@ pip install -e ".[dev]"
 pytest
 ```
 
-69 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
+85 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
 draws a seeded panel carrying the defects real panels carry: irregular cash-flow
 dates, a J-curve, unrealised residual NAVs, and a factor panel that starts after
 the first fund does.
+
+Tests needing the `[factors]` extra skip rather than fail, so a core install
+stays green.
 
 Four of the tests are enforcement rather than behaviour — they fail the suite if
 the package imports with a filesystem side effect, documents an argument it does
@@ -142,10 +162,10 @@ not take, ships a proprietary identifier, or imports a competing analytics stack
 
 ## Status
 
-`0.1.0` is the estimator core: classical PME measures, the MATF deflator, and the
-panel MLE for the unsmoothing coefficient. The full estimation pipeline — sign
-constrained shrinkage betas, the bootstrap inference layer and the reporting
-stack — is not in this release. See `CHANGELOG.md`.
+`0.2.0` covers the estimator: classical PME measures, the MATF deflator, the
+factor-loading fit, and the panel MLE for the unsmoothing coefficient. The
+bootstrap inference layer and the reporting stack are not in this release. See
+`CHANGELOG.md`.
 
 ## Citation
 
