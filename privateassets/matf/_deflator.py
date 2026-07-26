@@ -23,12 +23,11 @@ carries no information from after it.
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 # qis / project
 import qis
 
-DEFAULT_COVAR_SPAN_MONTHS = 36  # EWMA span in months, about a 3-year half-life
-DEFAULT_BURNIN_MONTHS = 36  # months of factor history required before the first estimate
+DEFAULT_COVAR_SPAN_MONTHS = 60  # EWMA span in months; the documented production setting
 
 
 def factor_monthly_log_returns(levels: pd.DataFrame) -> pd.DataFrame:
@@ -56,65 +55,59 @@ def factor_log_levels_panel(log_returns: pd.DataFrame) -> pd.DataFrame:
     return log_returns.cumsum()
 
 
-def rolling_ewma_quarterly_covar(levels: pd.DataFrame,
-                                 quarter_ends: pd.DatetimeIndex,
-                                 span_months: int = DEFAULT_COVAR_SPAN_MONTHS,  # EWMA span in months
-                                 burnin_months: int = DEFAULT_BURNIN_MONTHS,  # history required first
-                                 ) -> Dict[pd.Timestamp, np.ndarray]:
-    """point-in-time EWMA factor covariance, one matrix per quarter end.
+def horizon_indices(cf_dates: List[pd.Timestamp],
+                    t0: pd.Timestamp,
+                    quarter_ends: pd.DatetimeIndex,
+                    ) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
+    """map cash-flow dates onto the factor panel's quarter-end grid.
 
-    At each quarter end the estimate uses only the monthly factor returns
-    observed by that date. Quarters before the burn-in are absent from the
-    result rather than estimated on a short window.
+    Every deflator in this package shares this convention, so that a KN and a
+    MATF deflator evaluated on the same cash flows differ in their pricing
+    kernel and in nothing else.
 
-    Matrices are returned in **quarterly** units: the monthly covariance scaled
-    by 3 under variance-time scaling. The deflator then scales by the horizon in
-    quarters.
+    A date is mapped to the last quarter end at or before it, the ``asof``
+    convention the factor panel is reported on. A date before the first quarter
+    end is marked out of panel rather than pinned to index zero: pinning
+    fabricates a horizon that does not exist.
 
     Args:
-        levels: daily factor levels.
-        quarter_ends: quarter-end dates to estimate on.
-        span_months: EWMA span in months.
-        burnin_months: months of history required before the first estimate.
+        cf_dates: dates to locate.
+        t0: horizon origin.
+        quarter_ends: quarter-end dates the cumulative arrays are indexed by.
 
     Returns:
-        Dict mapping quarter end to a quarterly covariance matrix. Quarters
-        inside the burn-in are absent.
-
-    Raises:
-        ValueError: if ``span_months`` or ``burnin_months`` is not positive.
+        Tuple of the per-date panel index, the origin's panel index (negative
+        when the origin precedes the panel), the ACT/365.25 horizon in years,
+        and a boolean mask of dates that fall inside the panel.
     """
-    if span_months <= 0:
-        raise ValueError(f"span_months must be positive, got {span_months!r}")
-    if burnin_months <= 0:
-        raise ValueError(f"burnin_months must be positive, got {burnin_months!r}")
-    monthly_log = factor_monthly_log_returns(levels)
-
-    sigmas: Dict[pd.Timestamp, np.ndarray] = {}
-    for q in quarter_ends:
-        month_end = q.to_period('M').to_timestamp(how='end').normalize()
-        window = monthly_log.loc[:month_end].dropna(how='any')
-        if len(window) < burnin_months:
-            continue
-        values = window.values
-        demeaned = values - values.mean(axis=0)
-        sigma_monthly = qis.compute_ewm_covar(a=demeaned, span=span_months)
-        sigmas[q] = sigma_monthly * 3.0  # variance-time scaling, months to quarters
-    return sigmas
+    quarters_ns = np.asarray([pd.Timestamp(q).value for q in quarter_ends], dtype=np.int64)
+    cf_ns = np.asarray([pd.Timestamp(t).value for t in cf_dates], dtype=np.int64)
+    idx_t = np.searchsorted(quarters_ns, cf_ns, side='right') - 1
+    idx_t0 = int(np.searchsorted(quarters_ns, pd.Timestamp(t0).value, side='right') - 1)
+    horizon_years = np.asarray([max((pd.Timestamp(t) - pd.Timestamp(t0)).days, 1) / 365.25
+                                for t in cf_dates])
+    return idx_t, idx_t0, horizon_years, idx_t >= 0
 
 
-def build_rolling_sigma(levels: pd.DataFrame,
-                        span_months: int = 60,  # EWMA span in months
-                        returns_freq: str = 'ME',  # frequency the returns are estimated at
-                        rebalancing_freq: str = 'QE',  # frequency the matrices are sampled at
-                        demean: bool = True,  # subtract the rolling EWMA mean
-                        ) -> Dict[pd.Timestamp, np.ndarray]:
-    """point-in-time EWMA factor covariance through ``qis.estimate_rolling_ewma_covar``.
+def rolling_factor_covar(levels: pd.DataFrame,
+                         span_months: int = DEFAULT_COVAR_SPAN_MONTHS,  # EWMA span in months
+                         returns_freq: str = 'ME',  # frequency the returns are estimated at
+                         rebalancing_freq: str = 'QE',  # frequency the matrices are sampled at
+                         demean: bool = True,  # subtract the rolling EWMA mean
+                         time_period: Optional[qis.TimePeriod] = None,  # None: the whole sample
+                         ) -> Dict[pd.Timestamp, np.ndarray]:
+    """point-in-time EWMA factor covariance, one matrix per rebalancing date.
 
-    An alternative to :func:`rolling_ewma_quarterly_covar` that delegates the
-    estimation to the stack. The two do **not** agree numerically: this one
-    defaults to a 60-month span with an EWMA-rolling mean, the other to 36 months
-    with a full-window mean. State which one a result uses.
+    Delegates to ``qis.estimate_rolling_ewma_covar``, so this package carries one
+    covariance convention and it is the stack's. Estimation frequency and
+    sampling frequency are separate arguments because the first sets the
+    sampling error and the second sets how often the deflator can update.
+
+    At each rebalancing date the estimate uses only returns observed by then, so
+    a deflator evaluated at a cash-flow date carries no later information.
+
+    Matrices are returned in **quarterly** units. ``qis`` annualises, so they are
+    divided by 4; the deflator then scales by the horizon in quarters.
 
     Args:
         levels: daily factor levels.
@@ -122,21 +115,27 @@ def build_rolling_sigma(levels: pd.DataFrame,
         returns_freq: frequency the returns are estimated at.
         rebalancing_freq: frequency the matrices are sampled at.
         demean: subtract the rolling EWMA mean.
+        time_period: window to restrict the output to. None uses the whole sample.
 
     Returns:
-        Dict mapping rebalancing date to a quarterly covariance matrix. ``qis``
-        annualises, so the matrices are divided by 4 to reach quarterly units.
+        Dict mapping rebalancing date to a quarterly covariance matrix.
+
+    Raises:
+        ValueError: if ``span_months`` is not positive.
     """
-    covars_annualised = qis.estimate_rolling_ewma_covar(prices=levels,
-                                                        returns_freq=returns_freq,
-                                                        rebalancing_freq=rebalancing_freq,
-                                                        span=span_months,
-                                                        demean=demean,
-                                                        apply_an_factor=True)
+    if span_months <= 0:
+        raise ValueError(f"span_months must be positive, got {span_months!r}")
+    covars = qis.estimate_rolling_ewma_covar(prices=levels,
+                                             time_period=time_period,
+                                             returns_freq=returns_freq,
+                                             rebalancing_freq=rebalancing_freq,
+                                             span=span_months,
+                                             demean=demean,
+                                             apply_an_factor=True)
     out: Dict[pd.Timestamp, np.ndarray] = {}
-    for date, sigma_annualised in covars_annualised.items():
+    for date, sigma_annualised in covars.items():
         key = date.tz_localize(None) if getattr(date, 'tz', None) else date
-        out[key] = sigma_annualised.values / 4.0
+        out[key] = sigma_annualised.values / 4.0  # annual to quarterly units
     return out
 
 

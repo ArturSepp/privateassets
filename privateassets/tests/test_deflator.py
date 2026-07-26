@@ -6,12 +6,11 @@ import pandas as pd
 import pytest
 # qis / project
 from privateassets.matf import (
-    build_rolling_sigma,
     closest_or_default_sigma,
     factor_log_levels_panel,
     factor_monthly_log_returns,
     matf_deflator,
-    rolling_ewma_quarterly_covar,
+    rolling_factor_covar,
 )
 from privateassets.tests.synthetic_data import make_factor_levels, make_rf_quarterly
 
@@ -139,32 +138,29 @@ def test_deflator_requires_some_covariance():
 
 
 def test_rolling_covariance_is_point_in_time():
-    """Truncating the panel after a quarter end leaves that quarter's matrix unchanged.
+    """Truncating the panel after a date leaves that date's matrix unchanged.
 
     A covariance that changed when later data was removed would be looking ahead.
     """
     levels = make_factor_levels()
-    quarter_ends = pd.DatetimeIndex(levels.resample('QE').last().index)
-    cutoff = quarter_ends[60]
-    full = rolling_ewma_quarterly_covar(levels, quarter_ends)
-    truncated = rolling_ewma_quarterly_covar(levels.loc[:cutoff], quarter_ends[:61])
-    assert np.allclose(full[cutoff], truncated[cutoff])
+    full = rolling_factor_covar(levels)
+    cutoff = sorted(full)[40]
+    truncated = rolling_factor_covar(levels.loc[:cutoff])
+    assert np.allclose(full[cutoff], truncated[cutoff], rtol=1e-8)
 
 
-def test_rolling_covariance_skips_the_burn_in():
+def test_rolling_covariance_returns_one_square_matrix_per_rebalancing_date():
     levels = make_factor_levels()
-    quarter_ends = pd.DatetimeIndex(levels.resample('QE').last().index)
-    sigmas = rolling_ewma_quarterly_covar(levels, quarter_ends, burnin_months=36)
-    assert quarter_ends[0] not in sigmas
-    assert quarter_ends[-1] in sigmas
+    sigmas = rolling_factor_covar(levels)
+    assert len(sigmas) > 0
     assert all(s.shape == (4, 4) for s in sigmas.values())
+    assert all(np.allclose(s, s.T) for s in sigmas.values())
 
 
 def test_rolling_covariance_rejects_a_non_positive_span():
     levels = make_factor_levels()
-    quarter_ends = pd.DatetimeIndex(levels.resample('QE').last().index)
     with pytest.raises(ValueError, match='span_months must be positive'):
-        rolling_ewma_quarterly_covar(levels, quarter_ends, span_months=0)
+        rolling_factor_covar(levels, span_months=0)
 
 
 def test_closest_sigma_falls_back_to_the_preceding_quarter():
@@ -181,9 +177,11 @@ def test_monthly_log_returns_rejects_a_non_datetime_index():
         factor_monthly_log_returns(pd.DataFrame({'a': [1.0, 2.0]}))
 
 
-def test_build_rolling_sigma_delegates_to_qis():
-    """The stack path returns one square matrix per rebalancing date."""
-    levels = make_factor_levels(start='2010-12-31', end='2020-12-31')
-    sigmas = build_rolling_sigma(levels, span_months=60)
-    assert len(sigmas) > 0
-    assert all(s.shape == (4, 4) for s in sigmas.values())
+def test_a_longer_span_gives_a_smoother_covariance_path():
+    """A longer EWMA span varies less through time, which is what span means."""
+    levels = make_factor_levels()
+    def path_variation(span):
+        sigmas = rolling_factor_covar(levels, span_months=span)
+        series = np.array([np.trace(s) for _, s in sorted(sigmas.items())])
+        return float(np.std(np.diff(series)))
+    assert path_variation(120) < path_variation(24)

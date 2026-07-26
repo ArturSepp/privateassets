@@ -1,5 +1,111 @@
 # Changelog
 
+## 0.4.0 (2026-07-26)
+
+Closes the last gap between raw fund reporting and the estimator: a fund
+publishes marks and cash flows, not returns, and the package can now reconstruct
+the return series the loadings are fitted on. Two long-standing defects in that
+reconstruction are fixed rather than carried over.
+
+### Added
+
+- `nav_implied_quarterly_returns` — modified Dietz returns per vintage, with the
+  denominator returned alongside as the pooling weight.
+- `pool_vintage_returns` — capital-weighted aggregation of vintage returns into
+  one manager series.
+
+### Fixed
+
+- **An unreported quarter no longer becomes a zero-return quarter.** The
+  precursor forward-filled the previous mark, which produces a quarter of
+  exactly zero return, manufacturing the smoothness the unsmoothing step then
+  tries to remove. That inflates the estimated AR coefficient and so inflates
+  the volatility uplift `1 / (1 - theta)`.
+  `test_forward_filling_biases_the_smoothing_coefficient_upward` measures the
+  effect. The old behaviour is available as `carry_navs_forward=True`.
+- **A return spanning a reporting gap is no longer labelled quarterly.** Both
+  ends of a quarter must carry a mark, so a two-quarter return is not mixed into
+  a quarterly series under a quarterly label. Every annualisation and
+  autocorrelation computed on such a series is otherwise wrong. For a genuinely
+  infrequent reporter, interpolate with `qis.interpolate_infrequent_returns`.
+- **The return index is now a complete quarterly range.** An unreported quarter
+  was previously absent from the index rather than present and empty, so a gap
+  was invisible to anything downstream.
+
+### Changed
+
+- **One covariance path.** `rolling_ewma_quarterly_covar` (36-month span,
+  full-window mean, hand-rolled) and `build_rolling_sigma` (60-month span,
+  through `qis`) disagreed numerically, and 0.0.1's config advertised the second
+  while running neither. Both are replaced by `rolling_factor_covar`, which
+  delegates to `qis.estimate_rolling_ewma_covar` at the documented 60-month
+  production span. `DEFAULT_COVAR_SPAN_MONTHS` is now 60.
+
+### Removed
+
+- `rolling_ewma_quarterly_covar`, `build_rolling_sigma`, `DEFAULT_BURNIN_MONTHS`.
+
+## 0.3.0 (2026-07-26)
+
+**The two single-factor benchmarks were understating themselves by the risk-free
+rate, which overstated every alpha measured against them.** Both are corrected
+here, and the corrections are pinned by economic invariants rather than by
+regression values.
+
+### Fixed
+
+- **KN24 benchmark deflator subtracted the risk-free rate twice.** The factor
+  panel is excess by construction, so `beta * (r_market - rf)` subtracted rf from
+  a series it had already been removed from. At `beta = 1` the deflator returned
+  the market's *excess* return where the benchmark portfolio is the market
+  itself. `test_unit_beta_benchmark_earns_the_total_market_return` fails under
+  the old expression.
+- **KN16 equity premium subtracted the risk-free rate twice.** `mu` was computed
+  as `log E[exp(r_excess)] - rf`. Since the series is already excess, its
+  lognormal mean *is* the premium. On a calibration with a true premium of 5.00%
+  and rf of 3.00%, the old expression returned 1.99% against 4.99% corrected.
+  Both `gamma = mu / sigma^2` and `delta` inherited the error.
+- **KN16 SDF was evaluated on the excess market return.** `delta` is calibrated
+  against the *total* return, so the kernel must see `rf + excess`. With the
+  premium fix alone the market still priced to 1.0688; with both fixes
+  `E[M Rf] = 0.9999` and `E[M Rm] = 1.0000`.
+- **A near-degenerate variance no longer produces a garbage SDF.** A constant
+  series has sample variance around 3e-36 rather than 0, which passed a
+  `> 0` guard and returned `gamma` of order 1e33. Rejected below
+  `MIN_ANNUAL_VARIANCE`.
+
+### Added
+
+- `kn24_benchmark_deflator`, `kn16_sdf_params`, `kn16_gpme_deflator` — the
+  incumbents the MATF deflator substitutes for, so the comparison runs on the
+  same cash flows.
+- `bootstrap_factor_betas` and `BetaBootstrap` — block-resampling inference
+  through `qis.generate_bootstrapped_indices`, replacing a hand-rolled
+  stationary sampler. Indices are drawn once and applied to the asset series and
+  the factor panel together, so each draw preserves the pairing the loading
+  measures.
+- `horizon_indices` — the shared date-to-panel mapping. Every deflator now uses
+  one convention, so a KN and a MATF deflator on the same cash flows differ in
+  their pricing kernel and in nothing else.
+- 22 tests, including that `E[M R] = 1` for both the risk-free asset and the
+  market, that a resample with a broken pairing collapses the loading, and that
+  the same seed reproduces an interval.
+
+### Changed
+
+- **Resampled results carry their provenance.** `BetaBootstrap` records the
+  `qis` version and the seed, because `BootstrapType.STATIONARY` changed its
+  wrapping at `qis 5.1.0` and an interval from an earlier version does not
+  reproduce.
+- **The bootstrap reports `share_at_zero`, not a p-value.** Under a binding sign
+  constraint the optimiser piles mass on the boundary, so the old
+  `p_two_sided` counted the constraint's own atom as evidence for the null,
+  doubled it, and clipped at 1. The quantity is monotone in how binding the
+  constraint is, not in the strength of the evidence, and it is now named and
+  documented as such.
+- Failed resample fits are counted in `num_failed` rather than becoming NaN, so
+  a degenerate draw cannot silently shrink the effective sample.
+
 ## 0.2.0 (2026-07-26)
 
 **`factorlasso` shipped a breaking rename that silently disabled the estimator.**

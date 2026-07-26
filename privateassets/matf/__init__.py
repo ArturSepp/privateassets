@@ -36,14 +36,13 @@ from privateassets.matf._pme import (
     xirr,
 )
 from privateassets.matf._deflator import (
-    DEFAULT_BURNIN_MONTHS,
     DEFAULT_COVAR_SPAN_MONTHS,
-    build_rolling_sigma,
     closest_or_default_sigma,
     factor_log_levels_panel,
     factor_monthly_log_returns,
+    horizon_indices,
     matf_deflator,
-    rolling_ewma_quarterly_covar,
+    rolling_factor_covar,
 )
 from privateassets.matf._betas import (
     DEFAULT_REG_LAMBDA,
@@ -53,6 +52,25 @@ from privateassets.matf._betas import (
     FactorBetas,
     SignConstraint,
     fit_factor_betas,
+)
+from privateassets.matf._benchmarks import (
+    MIN_ANNUAL_VARIANCE,
+    QUARTERS_PER_YEAR,
+    kn16_gpme_deflator,
+    kn16_sdf_params,
+    kn24_benchmark_deflator,
+)
+from privateassets.matf._inference import (
+    DEFAULT_BLOCK_SIZE,
+    DEFAULT_ZERO_TOLERANCE,
+    DEFAULT_NUM_SAMPLES,
+    DEFAULT_SEED,
+    BetaBootstrap,
+    bootstrap_factor_betas,
+)
+from privateassets.matf._returns import (
+    nav_implied_quarterly_returns,
+    pool_vintage_returns,
 )
 from privateassets.matf._panel_mle import (
     MIN_OBS_FOR_THETA,
@@ -81,11 +99,26 @@ __all__ = [
     'vintage_direct_alpha',
     'factor_monthly_log_returns',
     'factor_log_levels_panel',
-    'rolling_ewma_quarterly_covar',
-    'build_rolling_sigma',
+    'rolling_factor_covar',
     'closest_or_default_sigma',
+    'horizon_indices',
     'DEFAULT_COVAR_SPAN_MONTHS',
-    'DEFAULT_BURNIN_MONTHS',
+    # NAV-implied returns
+    'nav_implied_quarterly_returns',
+    'pool_vintage_returns',
+    # single-factor benchmarks the MATF deflator displaces
+    'kn24_benchmark_deflator',
+    'kn16_sdf_params',
+    'kn16_gpme_deflator',
+    'QUARTERS_PER_YEAR',
+    'MIN_ANNUAL_VARIANCE',
+    # resampling inference
+    'bootstrap_factor_betas',
+    'BetaBootstrap',
+    'DEFAULT_NUM_SAMPLES',
+    'DEFAULT_BLOCK_SIZE',
+    'DEFAULT_SEED',
+    'DEFAULT_ZERO_TOLERANCE',
     # factor loadings
     'fit_factor_betas',
     'FactorBetas',

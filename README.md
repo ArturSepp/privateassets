@@ -40,6 +40,20 @@ alpha = direct_alpha(cf_dates=cf['date'], cf_amounts=cf['amount'],
                      rvpi_nav=nav, rvpi_date=nav_date, bench_idx=benchmark_levels)
 ```
 
+A fund reports marks and cash flows, not returns. Reconstruct the return series
+first:
+
+```python
+from privateassets.matf import nav_implied_quarterly_returns, pool_vintage_returns
+
+returns, capital = nav_implied_quarterly_returns(cf=cash_flows, navs=navs)
+quarterly_returns = pool_vintage_returns(returns, capital)
+```
+
+An unreported quarter comes back missing, not zero, and a return spanning a
+reporting gap is not labelled quarterly. For a genuinely infrequent reporter,
+interpolate with `qis.interpolate_infrequent_returns`.
+
 Factor loadings come from the shrinkage estimator. The panel is short and the
 factors are collinear, so an unconstrained least-squares beta is not usable:
 
@@ -63,14 +77,14 @@ and solves the same root-finding step:
 ```python
 import numpy as np
 from privateassets.matf import (cf_with_terminal_for_vintage, factor_log_levels_panel,
-                                matf_deflator, rolling_ewma_quarterly_covar,
+                                matf_deflator, rolling_factor_covar,
                                 vintage_direct_alpha)
 
 quarter_ends = pd.DatetimeIndex(factor_levels.resample('QE').last().index)
 quarterly = np.log(factor_levels.resample('QE').last()).diff().fillna(0.0)
 cum_log_factor = factor_log_levels_panel(quarterly).values
 cum_log_rf = np.log1p(rf_quarterly).cumsum().values
-sigma_by_quarter = rolling_ewma_quarterly_covar(factor_levels, quarter_ends)
+sigma_by_quarter = rolling_factor_covar(factor_levels)
 
 cf_v, rvpi_nav, rvpi_date, dates = cf_with_terminal_for_vintage(cf_g, nav_g)
 deflators = matf_deflator(cf_dates=dates, t0=dates[0],
@@ -108,6 +122,41 @@ biases the coefficient by about `-(1 + 3θ)/n`. At 80 quarterly observations and
 inflation `1/(1-θ)`, understating unsmoothed risk. No bias correction is applied.
 `test_short_panels_understate_theta_by_the_kendall_bias` pins the magnitude.
 
+## Comparing against the single-factor incumbents
+
+`kn24_benchmark_deflator` and `kn16_gpme_deflator` price the same cash flows
+against one market index, so the multi-factor result can be reported next to
+what it replaces. Both take the equity factor as an excess log return and add
+the risk-free leg back where the economics needs a total return.
+
+```python
+from privateassets.matf import kn16_gpme_deflator, kn16_sdf_params
+
+delta, gamma, sigma2 = kn16_sdf_params(equity_excess_log_returns, rf_quarterly)
+kn_deflators = kn16_gpme_deflator(cf_dates=dates, t0=dates[0],
+                                  cum_log_equity_excess=cum_log_equity,
+                                  cum_log_rf=cum_log_rf, quarter_ends=quarter_ends,
+                                  delta=delta, gamma=gamma)
+kn_alpha = vintage_direct_alpha(cf_v, rvpi_nav, dates, kn_deflators)
+```
+
+## Inference
+
+Loadings are resampled in blocks through `qis`, with the asset and its factors
+resampled together:
+
+```python
+from privateassets.matf import bootstrap_factor_betas
+
+boot = bootstrap_factor_betas(asset_returns, factor_returns,
+                              num_samples=1000, block_size=12, seed=1)
+print(boot.lower, boot.upper, boot.qis_version)
+```
+
+`share_at_zero` reports how often a sign constraint binds. It is not a p-value:
+under a binding constraint the mass sits on the boundary, so the quantity tracks
+the constraint, not the evidence.
+
 ## Conventions
 
 - Factor inputs are **excess** log returns. The risk-free rate enters the
@@ -119,10 +168,10 @@ inflation `1/(1-θ)`, understating unsmoothed risk. No bias correction is applie
 - Day counts are ACT/365.25 throughout.
 - A cash-flow date before the factor panel starts returns NaN. It is not pinned
   to the first quarter end.
-- `rolling_ewma_quarterly_covar` (36-month span, full-window mean) and
-  `build_rolling_sigma` (60-month span, EWMA-rolling mean, through
-  `qis.estimate_rolling_ewma_covar`) do **not** agree numerically. State which
-  one a result uses.
+- There is one covariance path, `rolling_factor_covar`, which delegates to
+  `qis.estimate_rolling_ewma_covar` at a 60-month span. The 36-month
+  full-window-mean variant that shipped in 0.1.0 is gone.
+- A quarter with no reported NAV yields a missing return, not a zero one.
 
 ## Dependencies
 
@@ -148,7 +197,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-85 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
+122 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
 draws a seeded panel carrying the defects real panels carry: irregular cash-flow
 dates, a J-curve, unrealised residual NAVs, and a factor panel that starts after
 the first fund does.
@@ -162,10 +211,11 @@ not take, ships a proprietary identifier, or imports a competing analytics stack
 
 ## Status
 
-`0.2.0` covers the estimator: classical PME measures, the MATF deflator, the
-factor-loading fit, and the panel MLE for the unsmoothing coefficient. The
-bootstrap inference layer and the reporting stack are not in this release. See
-`CHANGELOG.md`.
+`0.4.0` runs from fund reporting to alpha: NAV-implied returns, the unsmoothing
+coefficient, factor loadings with block-resampled intervals, the MATF deflator,
+the single-factor benchmarks it displaces, and the classical PME measures. The
+orchestration layer that wires them into one call, and the reporting stack, are
+not in this release. See `CHANGELOG.md`.
 
 ## Citation
 
