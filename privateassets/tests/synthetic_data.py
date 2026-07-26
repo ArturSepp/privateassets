@@ -111,3 +111,82 @@ def make_ar1_panel(n_series: int = 8,
         series = r[burnin:]
         out.append((f'series_{i}', series - series.mean() if demean else series))
     return out
+
+
+def make_factor_driven_panel(beta: np.ndarray = None,  # true factor loadings
+                             annual_alpha: float = 0.04,  # true annualised alpha
+                             theta: float = 0.30,  # true appraisal-smoothing coefficient
+                             n_funds: int = 4,
+                             n_quarters: int = 44,  # about eleven years per fund
+                             start: str = '2006-03-31',
+                             noise: float = 0.01,
+                             seed: int = SEED,
+                             ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Series]:
+    """a panel whose funds genuinely earn a known alpha over a known factor basket.
+
+    Built so the whole estimator chain can be validated end to end: the true
+    return is ``beta' f + alpha``, it is then smoothed by an AR(1) of coefficient
+    ``theta`` the way an appraisal process smooths it, and the reported NAVs are
+    the smoothed path. Recovering alpha therefore requires the unsmoothing, the
+    loading fit and the deflator all to be right together.
+
+    Returns:
+        Tuple of (cash flows, NAVs, factor levels, quarterly risk-free yield).
+    """
+    if beta is None:
+        beta = np.array([0.70, 0.00, 0.50, 0.00])
+    rng = np.random.default_rng(seed)
+
+    levels = make_factor_levels(start='2000-12-31', end='2026-12-31', seed=seed)
+    quarter_ends = pd.DatetimeIndex(levels.resample('QE').last().index)
+    factor_q = np.log(levels.resample('QE').last()).diff().fillna(0.0)
+    rf = make_rf_quarterly(quarter_ends, rate=0.02)
+
+    cf_rows, nav_rows = [], []
+    for i in range(n_funds):
+        label = f'Fund {i + 1}'
+        first = pd.Timestamp(start) + pd.DateOffset(years=2 * i)
+        periods = pd.date_range(first, periods=n_quarters, freq='QE')
+        periods = periods[periods.isin(quarter_ends)]
+        commitment = 100.0 * (1.0 + 0.3 * i)
+
+        # The fund earns exactly what the MATF benchmark portfolio earns, times
+        # exp(alpha). Factor inputs are excess log returns, so the risk-free leg
+        # is added back and the Jensen terms convert the levered log basket into
+        # the arithmetic return a holder would realise. Built this way, the
+        # estimator must return `annual_alpha` and nothing else.
+        sigma_q = np.cov(factor_q.values, rowvar=False)
+        jensen = 0.5 * (beta @ np.diag(sigma_q) - float(beta @ sigma_q @ beta))
+        log_rf = np.log1p(rf.reindex(periods).values)
+        log_gross = (log_rf
+                     + factor_q.reindex(periods).values @ beta
+                     + jensen
+                     + annual_alpha / 4.0
+                     + rng.normal(0.0, noise, len(periods)))
+        true_returns = np.expm1(log_gross)
+        # Appraisal smoothing: r_reported_t = (1-theta) r_true_t + theta r_reported_{t-1}
+        reported = np.zeros(len(periods))
+        for t in range(len(periods)):
+            previous = reported[t - 1] if t > 0 else 0.0
+            reported[t] = (1.0 - theta) * true_returns[t] + theta * previous
+
+        nav = 0.0
+        n_calls, n_dists = 6, 10
+        for t, date in enumerate(periods):
+            call = commitment / n_calls if t < n_calls else 0.0
+            dist = 0.0
+            if t >= len(periods) - n_dists:
+                dist = nav * (1.0 / (len(periods) - t))
+            nav = nav * (1.0 + reported[t]) + call - dist
+            if call > 0:
+                cf_rows.append({'fund': label, 'vintage_label': label, 'date': date,
+                                'amount': -call, 'kind': 'contribution'})
+            if dist > 0:
+                cf_rows.append({'fund': label, 'vintage_label': label, 'date': date,
+                                'amount': dist, 'kind': 'distribution'})
+            nav_rows.append({'fund': label, 'vintage_label': label, 'date': date,
+                             'nav': float(max(nav, 1e-6))})
+
+    cf = pd.DataFrame(cf_rows).sort_values(['fund', 'date']).reset_index(drop=True)
+    navs = pd.DataFrame(nav_rows).sort_values(['fund', 'date']).reset_index(drop=True)
+    return cf, navs, levels, rf

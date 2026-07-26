@@ -1,36 +1,88 @@
 # Changelog
 
-## 0.4.0 (2026-07-26)
+## 0.5.0 (2026-07-26)
 
-Closes the last gap between raw fund reporting and the estimator: a fund
-publishes marks and cash flows, not returns, and the package can now reconstruct
-the return series the loadings are fitted on. Two long-standing defects in that
-reconstruction are fixed rather than carried over.
+The estimator runs end to end in one call. `estimate_matf_alpha` composes
+reported returns, the smoothing coefficient, the loadings, the point-in-time
+covariance, the deflator and the aggregate, and returns every intermediate
+rather than printing it.
 
 ### Added
 
-- `nav_implied_quarterly_returns` — modified Dietz returns per vintage, with the
-  denominator returned alongside as the pooling weight.
-- `pool_vintage_returns` — capital-weighted aggregation of vintage returns into
-  one manager series.
+- `estimate_matf_alpha` and `MatfResult` — the whole chain, from marks and cash
+  flows to a capital-weighted alpha, as one frozen result.
+- `beta=` — price a panel against supplied loadings instead of fitting them. This
+  is how a production loading vector is applied to a new panel, and how the
+  deflator path is tested without the in-sample fit moving under it.
+- `theta=` — fix the smoothing coefficient instead of estimating it, recorded in
+  `provenance` because it makes the result depend on data not supplied.
+- `MatfResult.provenance` — `qis`, `factorlasso` and `privateassets` versions,
+  the seed, the specification, and the two standing caveats
+  (`betas_are_in_sample`, `covariance_is_point_in_time`).
+- `make_factor_driven_panel` — a synthetic panel whose funds earn exactly what
+  the MATF benchmark portfolio earns times `exp(alpha)`, then smoothed by a known
+  AR(1). Recovering alpha requires every stage to be right at once.
+- 24 tests, including recovery of an injected alpha, a one-for-one response to
+  changing it, and the end-to-end no-look-ahead check.
 
 ### Fixed
 
-- **An unreported quarter no longer becomes a zero-return quarter.** The
-  precursor forward-filled the previous mark, which produces a quarter of
+- **The covariance inside the deflator is point-in-time.** The precursor
+  estimated one full-sample matrix and applied it to every cash flow, so a 2001
+  contribution was deflated with a covariance that knew about 2008 and 2020.
+  `test_no_look_ahead_end_to_end` deletes every observation after a vintage
+  closes and asserts its alpha is unchanged to 1e-12; it fails under the old
+  behaviour.
+- **Nothing is printed and no file is written.** The precursor's `run()` emitted
+  about forty lines to stdout, wrote a spreadsheet and a PDF, and returned none
+  of its inference. Bootstrap intervals and the loading table were unreachable
+  programmatically.
+- **A vintage that cannot be priced keeps its row with a NaN alpha** rather than
+  disappearing, so the aggregate's denominator and the vintage count agree.
+
+### Known and documented
+
+- The loadings are in-sample by construction: one beta over the whole panel,
+  applied to every vintage. That is the identification design, and it is why
+  `betas_are_in_sample` is in `provenance`.
+- The estimated smoothing coefficient is attenuated. Modified Dietz returns are
+  noisiest while capital is still being called, and that measurement noise
+  attenuates an autoregressive estimate on top of the Kendall demeaning bias.
+  `test_theta_is_attenuated_by_the_j_curve` pins the direction. Understating
+  theta understates the volatility uplift `1 / (1 - theta)`.
+
+## 0.4.0 (2026-07-26)
+
+Closes the gap between raw fund reporting and the estimator: a fund publishes
+marks and cash flows, not returns. The reconstruction assumes **one panel, one
+reporting frequency**, and says so out loud rather than smoothing over a panel
+that violates it.
+
+### Added
+
+- `nav_implied_returns` — modified Dietz returns per vintage on any supported
+  reporting frequency, with the denominator returned alongside as the pooling
+  weight.
+- `pool_vintage_returns` — capital-weighted aggregation into one manager series.
+- `infer_reporting_frequency` — median months between marks, per vintage. Read
+  it before choosing the frequency to estimate on.
+- `split_by_reporting_frequency` — partition a mixed panel into groups that each
+  report at one frequency, so each is estimated on its own grid.
+
+### Fixed
+
+- **A return spanning a skipped period is rejected, not relabelled.** The
+  precursor computed the return across a gap and filed it at the panel
+  frequency, mixing one-period and two-period returns under one label and
+  corrupting every annualisation and autocorrelation built on the series. Both
+  ends of a period must now be marked. A panel with gaps raises, naming the
+  vintages and how many periods each skips.
+- **Nothing is forward-filled.** Carrying a mark forward produces a period of
   exactly zero return, manufacturing the smoothness the unsmoothing step then
-  tries to remove. That inflates the estimated AR coefficient and so inflates
-  the volatility uplift `1 / (1 - theta)`.
-  `test_forward_filling_biases_the_smoothing_coefficient_upward` measures the
-  effect. The old behaviour is available as `carry_navs_forward=True`.
-- **A return spanning a reporting gap is no longer labelled quarterly.** Both
-  ends of a quarter must carry a mark, so a two-quarter return is not mixed into
-  a quarterly series under a quarterly label. Every annualisation and
-  autocorrelation computed on such a series is otherwise wrong. For a genuinely
-  infrequent reporter, interpolate with `qis.interpolate_infrequent_returns`.
-- **The return index is now a complete quarterly range.** An unreported quarter
-  was previously absent from the index rather than present and empty, so a gap
-  was invisible to anything downstream.
+  removes, which inflates the AR coefficient and the volatility uplift
+  `1 / (1 - theta)`. There is no option to re-enable it.
+- **The return index is a complete period range**, so a gap is visible rather
+  than absent from the index.
 
 ### Changed
 
@@ -40,6 +92,10 @@ reconstruction are fixed rather than carried over.
   while running neither. Both are replaced by `rolling_factor_covar`, which
   delegates to `qis.estimate_rolling_ewma_covar` at the documented 60-month
   production span. `DEFAULT_COVAR_SPAN_MONTHS` is now 60.
+- **No interpolation anywhere in the package.** A series reported less often
+  than the estimation grid is estimated on its own grid, or split out. Inventing
+  an intermediate path is an assumption about unobserved data, and the package
+  does not make it on the caller's behalf.
 
 ### Removed
 

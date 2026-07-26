@@ -40,19 +40,59 @@ alpha = direct_alpha(cf_dates=cf['date'], cf_amounts=cf['amount'],
                      rvpi_nav=nav, rvpi_date=nav_date, bench_idx=benchmark_levels)
 ```
 
+The whole estimator is one call. It returns every intermediate it computed, and
+writes nothing:
+
+```python
+from privateassets.matf import estimate_matf_alpha
+
+result = estimate_matf_alpha(cf=cash_flows, navs=navs,
+                             factor_levels=factor_levels,   # excess index levels
+                             rf_rate=rf_quarterly,
+                             num_bootstrap=1000, seed=1)
+
+print(result.cap_weighted_alpha)      # annualised, capital-weighted
+print(result.vintage_alpha)           # per vintage
+print(result.betas.beta)              # loadings
+print(result.beta_bootstrap.lower)    # resampled interval
+print(result.provenance)              # versions, seed, specification
+```
+
+The covariance inside the deflator is point-in-time: deleting every observation
+after a vintage closes leaves its alpha unchanged to 1e-12, which
+`test_no_look_ahead_end_to_end` asserts. The loadings are in-sample by
+construction — one beta over the whole panel — and `provenance` says so, because
+that caveat has to travel with the number.
+
+Pass `beta=` to price against a loading vector you already have instead of
+fitting one.
+
+The stages are also available individually.
+
 A fund reports marks and cash flows, not returns. Reconstruct the return series
 first:
 
 ```python
-from privateassets.matf import nav_implied_quarterly_returns, pool_vintage_returns
+from privateassets.matf import (infer_reporting_frequency, nav_implied_returns,
+                                pool_vintage_returns, split_by_reporting_frequency)
 
-returns, capital = nav_implied_quarterly_returns(cf=cash_flows, navs=navs)
+print(infer_reporting_frequency(navs))          # months between marks, per vintage
+returns, capital = nav_implied_returns(cf=cash_flows, navs=navs, freq='QE')
 quarterly_returns = pool_vintage_returns(returns, capital)
 ```
 
-An unreported quarter comes back missing, not zero, and a return spanning a
-reporting gap is not labelled quarterly. For a genuinely infrequent reporter,
-interpolate with `qis.interpolate_infrequent_returns`.
+**One panel, one reporting frequency.** Every return spans exactly one period,
+and nothing is forward-filled or interpolated. A panel whose vintages report at
+different frequencies raises, naming the offenders:
+
+```python
+groups = split_by_reporting_frequency(cf, navs)
+returns, capital = nav_implied_returns(*groups[6], freq='2QE')   # the semi-annual reporters
+```
+
+Estimating the groups separately is honest. Interpolating them onto a common
+grid is an assumption about an unobserved path, and this package does not make
+it for you.
 
 Factor loadings come from the shrinkage estimator. The panel is short and the
 factors are collinear, so an unconstrained least-squares beta is not usable:
@@ -171,7 +211,8 @@ the constraint, not the evidence.
 - There is one covariance path, `rolling_factor_covar`, which delegates to
   `qis.estimate_rolling_ewma_covar` at a 60-month span. The 36-month
   full-window-mean variant that shipped in 0.1.0 is gone.
-- A quarter with no reported NAV yields a missing return, not a zero one.
+- One panel, one reporting frequency. Every return spans exactly one period,
+  and nothing is forward-filled or interpolated.
 
 ## Dependencies
 
@@ -197,7 +238,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-122 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
+152 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
 draws a seeded panel carrying the defects real panels carry: irregular cash-flow
 dates, a J-curve, unrealised residual NAVs, and a factor panel that starts after
 the first fund does.
@@ -211,11 +252,13 @@ not take, ships a proprietary identifier, or imports a competing analytics stack
 
 ## Status
 
-`0.4.0` runs from fund reporting to alpha: NAV-implied returns, the unsmoothing
-coefficient, factor loadings with block-resampled intervals, the MATF deflator,
-the single-factor benchmarks it displaces, and the classical PME measures. The
-orchestration layer that wires them into one call, and the reporting stack, are
-not in this release. See `CHANGELOG.md`.
+`0.5.0` runs from fund reporting to alpha in one call, and each stage is usable
+on its own. The reporting and factsheet layer is not in this release. See
+`CHANGELOG.md`.
+
+Two caveats travel with every number and are recorded in `provenance`: the
+loadings are in-sample, and the estimated smoothing coefficient is attenuated by
+measurement noise in the J-curve period.
 
 ## Citation
 

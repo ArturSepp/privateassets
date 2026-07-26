@@ -60,6 +60,12 @@ from privateassets.matf._benchmarks import (
     kn16_sdf_params,
     kn24_benchmark_deflator,
 )
+from privateassets.matf._estimator import (
+    DEFAULT_DPI_THRESHOLD,
+    DEFLATOR_FREQ,
+    MatfResult,
+    estimate_matf_alpha,
+)
 from privateassets.matf._inference import (
     DEFAULT_BLOCK_SIZE,
     DEFAULT_ZERO_TOLERANCE,
@@ -69,8 +75,12 @@ from privateassets.matf._inference import (
     bootstrap_factor_betas,
 )
 from privateassets.matf._returns import (
-    nav_implied_quarterly_returns,
+    FREQUENCY_BY_MONTHS,
+    PERIODS_PER_YEAR_BY_MONTHS,
+    infer_reporting_frequency,
+    nav_implied_returns,
     pool_vintage_returns,
+    split_by_reporting_frequency,
 )
 from privateassets.matf._panel_mle import (
     MIN_OBS_FOR_THETA,
@@ -103,9 +113,18 @@ __all__ = [
     'closest_or_default_sigma',
     'horizon_indices',
     'DEFAULT_COVAR_SPAN_MONTHS',
-    # NAV-implied returns
-    'nav_implied_quarterly_returns',
+    # the estimator, end to end
+    'estimate_matf_alpha',
+    'MatfResult',
+    'DEFAULT_DPI_THRESHOLD',
+    'DEFLATOR_FREQ',
+    # reported returns
+    'nav_implied_returns',
     'pool_vintage_returns',
+    'infer_reporting_frequency',
+    'split_by_reporting_frequency',
+    'FREQUENCY_BY_MONTHS',
+    'PERIODS_PER_YEAR_BY_MONTHS',
     # single-factor benchmarks the MATF deflator displaces
     'kn24_benchmark_deflator',
     'kn16_sdf_params',
