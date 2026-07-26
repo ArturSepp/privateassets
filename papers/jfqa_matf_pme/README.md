@@ -1,21 +1,13 @@
-# JFQA — multi-factor money-weighted PME (methods paper)
+# Methods paper — multi-factor money-weighted PME
 
-Status: to draft. This directory is a placeholder for the publication-track
-manuscript and its figure code.
+Status: to draft.
 
-Central claim: single-benchmark PME misstates private-capital alpha by the risk
-premia of omitted factors. We develop a multi-factor money-weighted estimator
-that removes this bias and quantify the correction across the universe.
+The estimator, its theory, estimation and inference, a Monte Carlo study, and
+cohort-level empirics.
 
-Three theorems (the spine):
-1. Omitted-factor bias of classical PME.
-2. Smoothing robustness at high DPI.
-3. Cohort-aggregation convexity.
+Named object: the MATF deflator. The reference implementation is
+`privateassets.matf.matf_deflator`, in the paper's notation.
 
-Data: MSCI Private Capital CFO cohorts (publishable in aggregated derived form,
-with MSCI attribution and pre-publication review). No fund-level data required.
-
-Positioned as the multi-factor money-weighted successor to Driessen, Lin and
-Phalippou (JFQA 2012).
-
-[TODO] section skeleton, notation table, formal statement of Results 1 to 3.
+Data: commercial cohort cash flows, publishable in aggregated derived form under
+the vendor's attribution and pre-publication review terms. No fund-level data
+required.

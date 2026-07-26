@@ -1,47 +1,84 @@
 """
 privateassets.matf — multi-factor, money-weighted PME.
 
-Estimates risk-adjusted alpha and systematic factor exposures (beta) directly
-from private-asset cash flows. Generalises Direct Alpha, KS-PME and GPME from a
-single benchmark to a tradable multi-factor deflator, with sign-coherent
-shrinkage betas (factorlasso / HCGL), panel-MLE AR(1) unsmoothing, and
-block-bootstrap inference.
+Estimates risk-adjusted alpha and systematic factor exposures directly from
+private-asset cash flows. Generalises Direct Alpha, KS-PME and GPME from a
+single benchmark to a tradable multi-factor deflator.
 
-Modules
--------
-  _pme.py            KS-PME, Direct Alpha, Long-Nickels, and XIRR
-  _pipeline.py       core estimator: shrinkage betas, deflator, Direct Alpha ladder
-  _deflator.py       rolling-Sigma multi-factor deflator
-  _unsmooth.py       fixed-theta AR(1) Getmansky-Lo-Makarov unsmoothing
-  _panel_mle.py      panel MLE for the AR(1) unsmoothing coefficient
-  _rolling_covar.py  qis-canonical rolling EWMA factor covariance
+Two layers:
 
-Data and outputs
-----------------
-Run from the repository root. Inputs are read from data/ and results written to
-outputs/, both resolved against the current working directory (override with
-PRIVATEASSETS_ROOT). Input data is licensed and is never shipped with the
-package. See DATA_README.md.
+- classical single-benchmark measures (``ks_pme``, ``direct_alpha``,
+  ``long_nickels_pme``, ``xirr``) and the vintage statistics around them
+- the MATF deflator (``matf_deflator``) with its point-in-time factor
+  covariance, and ``vintage_direct_alpha``, which turns any deflator path into
+  an annualised alpha
 
-Built on qis and factorlasso. No dependency on optimalportfolios.
+Unsmoothing lives in ``qis``. Estimate the AR(1) coefficient here with
+``fit_panel_ar1``, then apply it with
+``qis.unsmooth_returns_glm(returns, ar_order=1, theta=theta_hat)``.
+
+Importing this module has no side effects and reads nothing from disk.
 """
-from pathlib import Path
-import os
+from privateassets.matf._pme import (
+    CF_COLUMNS,
+    NAV_COLUMNS,
+    cap_weighted_aggregates,
+    cf_with_terminal_for_vintage,
+    compute_vintage_stats,
+    direct_alpha,
+    ks_pme,
+    load_cash_flows,
+    load_navs,
+    long_nickels_pme,
+    vintage_direct_alpha,
+    xirr,
+)
+from privateassets.matf._deflator import (
+    DEFAULT_BURNIN_MONTHS,
+    DEFAULT_COVAR_SPAN_MONTHS,
+    build_rolling_sigma,
+    closest_or_default_sigma,
+    factor_log_levels_panel,
+    factor_monthly_log_returns,
+    matf_deflator,
+    rolling_ewma_quarterly_covar,
+)
+from privateassets.matf._panel_mle import (
+    MIN_OBS_FOR_THETA,
+    MIN_OBS_PER_VINTAGE_MLE,
+    fisher_info_panel_ar1,
+    fit_panel_ar1,
+    panel_ar1_neg_log_likelihood,
+)
 
-# Repo root: where data/ and outputs/ live. Default is the current working
-# directory (run the CLI from the repo root); override with PRIVATEASSETS_ROOT.
-# Never resolved relative to the installed package, so a pip-installed copy
-# does not read from or write into site-packages.
-PROJECT_ROOT = Path(os.environ.get("PRIVATEASSETS_ROOT", os.getcwd())).resolve()
-DATA_DIR = PROJECT_ROOT / 'data'
-OUTPUT_DIR = PROJECT_ROOT / 'outputs'
-
-# Ensure outputs dir exists at import time
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-# Convenience handles to the three data files
-DATA_XLSX = DATA_DIR / 'data.xlsx'
-FACTORS_CSV = DATA_DIR / 'factors.csv'
-RF_CSV = DATA_DIR / 'rf_rate.csv'
-
-__version__ = "0.0.1"
+__all__ = [
+    # cash-flow containers
+    'CF_COLUMNS',
+    'NAV_COLUMNS',
+    'load_cash_flows',
+    'load_navs',
+    'cf_with_terminal_for_vintage',
+    # single-benchmark measures
+    'xirr',
+    'ks_pme',
+    'direct_alpha',
+    'long_nickels_pme',
+    'compute_vintage_stats',
+    'cap_weighted_aggregates',
+    # multi-factor deflator
+    'matf_deflator',
+    'vintage_direct_alpha',
+    'factor_monthly_log_returns',
+    'factor_log_levels_panel',
+    'rolling_ewma_quarterly_covar',
+    'build_rolling_sigma',
+    'closest_or_default_sigma',
+    'DEFAULT_COVAR_SPAN_MONTHS',
+    'DEFAULT_BURNIN_MONTHS',
+    # unsmoothing coefficient
+    'fit_panel_ar1',
+    'panel_ar1_neg_log_likelihood',
+    'fisher_info_panel_ar1',
+    'MIN_OBS_FOR_THETA',
+    'MIN_OBS_PER_VINTAGE_MLE',
+]

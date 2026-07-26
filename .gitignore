@@ -1,4 +1,4 @@
-# --- Private, untracked sub-trees: developed alongside, never part of the public package ---
+# --- Private sub-trees: developed alongside, never part of the public package ---
 /projects/
 /data/
 
@@ -15,6 +15,8 @@ venv/
 build/
 dist/
 .ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
 
 # --- LaTeX build artifacts ---
 *.aux
@@ -30,4 +32,9 @@ dist/
 # --- OS / IDE ---
 .DS_Store
 .idea/
-chat_files.zip
+
+# --- Never commit ---
+*.zip
+*.xlsx
+*.xls
+*.csv

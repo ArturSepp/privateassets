@@ -1,11 +1,11 @@
 include README.md
 include DATA_README.md
-include LICENSE.txt
 include CHANGELOG.md
+include CITATION.cff
+include LICENSE.txt
 recursive-include privateassets *.py
 prune data
 prune outputs
 prune projects
-prune paper_code
 global-exclude *.py[cod]
 global-exclude __pycache__

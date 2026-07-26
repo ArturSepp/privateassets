@@ -1,12 +1,10 @@
-# FAJ — fund-level application (practitioner paper)
+# Application paper — manager skill and selection
 
-Status: to draft. Gated on Preqin fund-level data being licensable for central
-use and publishable in derived form.
+Status: to draft. Gated on fund-level data being licensable for central use and
+for publication.
 
-Content: the fund-level application. Manager-skill dispersion (Layer 2,
-alpha_k = alpha_c + s_k), manager and vintage selection, and SAA. Reaches the
-allocator audience and the LGT business case.
+Applies the estimator from the methods paper to fund-level cash flows: skill
+dispersion across managers, manager and vintage selection, and the allocation
+consequences.
 
-Data: Preqin (BlackRock) named fund-level cash flows.
-
-[TODO] manuscript and figures once Preqin terms clear.
+Cites the estimator rather than restating it.

@@ -4,25 +4,57 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "privateassets"
-version = "0.0.1"
-description = "Quantitative analytics for private-asset returns: multi-factor money-weighted PME (MATF), unsmoothing, and risk-adjusted performance estimation."
+version = "0.1.0"
+description = "Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures."
 readme = "README.md"
-requires-python = ">=3.11"
-authors = [{ name = "Artur Sepp" }]
-keywords = ["private equity", "private credit", "private assets", "PME", "direct alpha", "risk-adjusted returns", "unsmoothing"]
-dependencies = [
-    "numpy",
-    "pandas",
-    "scipy",
-    "matplotlib",
-    "cvxpy",
-    "openpyxl",
-    "qis",
-    "factorlasso",
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Artur Sepp", email = "artursepp@gmail.com" }]
+keywords = [
+    "private equity", "private credit", "private assets", "PME",
+    "direct alpha", "money-weighted returns", "unsmoothing", "cash flows",
 ]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scipy>=1.11",
+    "qis>=5.1.0",
+]
+
+[project.optional-dependencies]
+# Sign-constrained shrinkage betas. factorlasso is GPL-3: see the licence note in
+# README.md before redistributing a combined work.
+factors = ["factorlasso>=0.10.0"]
+excel = ["openpyxl>=3.1"]
+plot = ["matplotlib>=3.8"]
+dev = ["pytest>=8.0", "ruff>=0.6", "openpyxl>=3.1"]
 
 [project.urls]
 Homepage = "https://github.com/ArturSepp/privateassets"
+Issues = "https://github.com/ArturSepp/privateassets/issues"
+Changelog = "https://github.com/ArturSepp/privateassets/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["privateassets*"]
+
+[tool.pytest.ini_options]
+testpaths = ["privateassets"]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+# "I" is not selected anywhere in this stack: the import grouping convention puts
+# the scientific stack before the project packages, which isort reorders.
+select = ["E", "F", "W", "B"]

@@ -1,126 +1,165 @@
 """
-Panel MLE for common AR(1) coefficient across vintages.
+privateassets.matf._panel_mle — panel MLE for a common AR(1) smoothing coefficient.
 
-Model: each vintage i has quarterly NAV-implied returns r_{i,t} that
-follow:
-   r_{i,t} = θ · r_{i,t-1} + ε_{i,t},  ε_{i,t} ~ N(0, σ_i²)
+Appraisal NAVs are reported with a lag and are anchored to the previous mark, so
+the reported return series is a moving average of the true one. Getmansky-Lo-
+Makarov invert that with an AR coefficient theta. Estimating theta on a single
+fund is noisy, because a fund contributes only a few dozen quarterly
+observations.
 
-with COMMON AR coefficient θ shared across vintages, but idiosyncratic
-residual variances σ_i².
+This estimates one theta across all funds while letting each keep its own
+residual variance:
 
-Profile-out variances and reduce to a 1-D optimization in θ. With
-σ_i² profiled at MLE σ̂_i²(θ) = mean_t (r_{i,t} - θ r_{i,t-1})², the
-profile log-likelihood for θ is:
+    r_{i,t} = theta r_{i,t-1} + e_{i,t},    e_{i,t} ~ N(0, sigma_i^2)
 
-   L_p(θ) = -(1/2) Σ_i n_i log σ̂_i²(θ)   + const
+Profiling out sigma_i^2 at its MLE, sigma_i^2(theta) = mean_t (r_{i,t} - theta
+r_{i,t-1})^2, reduces the problem to one dimension:
 
-Maximize over θ ∈ (-1, 1).
+    L_p(theta) = -(1/2) Sum_i n_i log sigma_i^2(theta) + const
 
-Compare to:
-  - Production pooled AR(1): θ_pooled = 0.142
-  - Per-vintage average:     avg θ_i  = 0.136
+which is then maximised over theta in (-1, 1). Pooling the funds is what buys
+the precision; letting sigma_i^2 differ is what stops a single volatile fund
+from setting theta for everyone.
 
-Author: A. Sepp / the desk
+The estimated theta feeds the unsmoothing step, which lives in ``qis``:
+``qis.unsmooth_returns_glm(returns, ar_order=1, theta=theta_hat)``.
 """
+
+# packages
 from __future__ import annotations
-from typing import Dict
 import numpy as np
 from scipy.optimize import minimize_scalar
+from typing import Dict, Optional, Sequence, Tuple, Union
+
+MIN_OBS_FOR_THETA = 3  # a series shorter than this carries no usable lag pair
+MIN_OBS_PER_VINTAGE_MLE = 5  # a per-series estimate below this is too noisy to report
+
+SeriesList = Sequence[Union[np.ndarray, Tuple[str, np.ndarray]]]
 
 
-def panel_ar1_neg_log_likelihood(
-    theta: float,
-    series_list: list,   # list of (label, np.ndarray) per vintage, demeaned
-) -> float:
-    """
-    Profile-out negative log-likelihood for panel AR(1) with common θ
-    and per-vintage idiosyncratic σ_i². Series are pre-demeaned.
+def _as_label_array(item: Union[np.ndarray, Tuple[str, np.ndarray]],
+                    position: int,
+                    ) -> Tuple[str, np.ndarray]:
+    """normalise one entry of a series list to a (label, array) pair."""
+    if isinstance(item, tuple):
+        label, values = item
+        return str(label), np.asarray(values, dtype=float)
+    return f'series_{position}', np.asarray(item, dtype=float)
 
-    Returns: -L_p(θ) where L_p is the profile log-likelihood.
+
+def panel_ar1_neg_log_likelihood(theta: float,
+                                 series_list: SeriesList,  # demeaned return series, one per fund
+                                 ) -> float:
+    """profiled negative log-likelihood of the common-theta panel AR(1).
+
+    Args:
+        theta: AR(1) coefficient.
+        series_list: demeaned return series, one per fund, either as arrays or as
+            ``(label, array)`` pairs. Series shorter than ``MIN_OBS_FOR_THETA``
+            are skipped.
+
+    Returns:
+        ``-L_p(theta)``, or infinity where a profiled variance is not positive.
     """
     nll = 0.0
-    for item in series_list:
-        r = item[1] if isinstance(item, tuple) else item
-        if len(r) < 3:
+    for position, item in enumerate(series_list):
+        _, r = _as_label_array(item, position)
+        if len(r) < MIN_OBS_FOR_THETA:
             continue
-        eps = r[1:] - theta * r[:-1]
-        n_i = len(eps)
-        sigma2_hat = np.mean(eps ** 2)
+        residuals = r[1:] - theta * r[:-1]
+        sigma2_hat = float(np.mean(residuals ** 2))
         if sigma2_hat <= 0:
             return np.inf
-        nll += 0.5 * n_i * np.log(sigma2_hat)
+        nll += 0.5 * len(residuals) * np.log(sigma2_hat)
     return nll
 
 
-def panel_ar1_grad(theta: float, series_list: list) -> float:
-    """Numerical derivative of NLL wrt theta (used for diagnostics)."""
-    eps = 1e-6
-    return (panel_ar1_neg_log_likelihood(theta + eps, series_list)
-            - panel_ar1_neg_log_likelihood(theta - eps, series_list)) / (2 * eps)
+def fisher_info_panel_ar1(theta: float,
+                          series_list: SeriesList,  # demeaned return series, one per fund
+                          ) -> float:
+    """Fisher information for theta, summed across the panel.
 
+    With sigma_i^2 known the per-observation information is
+    ``Var(r_{i,t-1}) / sigma_i^2``. Profiling sigma_i^2 at its MLE gives
+    ``n_i Var(r_{i,t-1}) / Sum_t (r_{i,t} - theta r_{i,t-1})^2``.
 
-def fisher_info_panel_ar1(theta_hat: float, series_list: list) -> float:
-    """
-    Approximate Fisher information for theta from the panel.
-    For AR(1) with σ_i² known, the per-obs Fisher info is
-    Var(r_{i,t-1}) / σ_i². With σ_i² profiled at MLE this becomes
-    n_i · Var(r_{i,t-1}) / sum((r_{i,t} - θ r_{i,t-1})²).
+    Args:
+        theta: AR(1) coefficient to evaluate at.
+        series_list: demeaned return series, one per fund.
+
+    Returns:
+        Total Fisher information. Zero when no series qualifies.
     """
     fisher = 0.0
-    for item in series_list:
-        # series_list is list of (label, array)
-        r = item[1] if isinstance(item, tuple) else item
-        if len(r) < 3:
+    for position, item in enumerate(series_list):
+        _, r = _as_label_array(item, position)
+        if len(r) < MIN_OBS_FOR_THETA:
             continue
-        eps = r[1:] - theta_hat * r[:-1]
-        sigma2_hat = np.mean(eps ** 2)
+        residuals = r[1:] - theta * r[:-1]
+        sigma2_hat = float(np.mean(residuals ** 2))
         if sigma2_hat <= 0:
             continue
-        var_lag = np.var(r[:-1])
-        n_i = len(eps)
-        fisher += n_i * var_lag / sigma2_hat
+        fisher += len(residuals) * float(np.var(r[:-1])) / sigma2_hat
     return fisher
 
 
-def fit_panel_ar1(series_list: list) -> Dict:
+def fit_panel_ar1(series_list: SeriesList,  # demeaned return series, one per fund
+                  theta_bounds: Tuple[float, float] = (-0.95, 0.95),  # search interval for theta
+                  ) -> Dict[str, Union[float, int, Dict[str, Optional[float]]]]:
+    """estimate a common AR(1) smoothing coefficient across a panel of funds.
+
+    Args:
+        series_list: demeaned return series, one per fund, either as arrays or as
+            ``(label, array)`` pairs.
+        theta_bounds: search interval for theta, inside (-1, 1).
+
+    Returns:
+        Dict carrying ``theta_hat``, its asymptotic standard error ``se``, the
+        profiled ``neg_log_lik``, ``fisher_info``, the per-series OLS estimates
+        in ``per_series_theta`` (None where the series is too short), the total
+        lag-pair count ``n_total``, and the qualifying series count ``n_series``.
+
+    Raises:
+        ValueError: if ``series_list`` is empty or ``theta_bounds`` is not a
+            valid interval inside (-1, 1).
     """
-    Fit common-θ panel AR(1) by profile MLE, return θ_hat and
-    asymptotic standard error.
-    """
-    res = minimize_scalar(
-        panel_ar1_neg_log_likelihood,
-        args=(series_list,),
-        bounds=(-0.95, 0.95),
-        method='bounded',
-        options={'xatol': 1e-6},
-    )
-    theta_hat = float(res.x)
+    if len(series_list) == 0:
+        raise ValueError("series_list is empty")
+    lo, hi = theta_bounds
+    if not (-1.0 < lo < hi < 1.0):
+        raise ValueError(f"theta_bounds must satisfy -1 < lo < hi < 1, got {theta_bounds!r}")
+
+    result = minimize_scalar(panel_ar1_neg_log_likelihood,
+                             args=(series_list,),
+                             bounds=theta_bounds,
+                             method='bounded',
+                             options={'xatol': 1e-6})
+    theta_hat = float(result.x)
     fisher = fisher_info_panel_ar1(theta_hat, series_list)
     se = float(1.0 / np.sqrt(fisher)) if fisher > 0 else float('nan')
 
-    # Also compute per-vintage MLE for comparison
-    per_vintage = {}
-    for v, r in series_list:
-        if len(r) < 5:
-            per_vintage[v] = None
+    per_series: Dict[str, Optional[float]] = {}
+    n_total = 0
+    n_series = 0
+    for position, item in enumerate(series_list):
+        label, r = _as_label_array(item, position)
+        n_total += max(0, len(r) - 1)
+        if len(r) < MIN_OBS_PER_VINTAGE_MLE:
+            per_series[label] = None
             continue
-        # Per-vintage AR(1) MLE = OLS of r_t on r_{t-1}
-        y = r[1:]; x = r[:-1]
+        y, x = r[1:], r[:-1]
         if np.var(x) < 1e-10:
-            per_vintage[v] = None
+            per_series[label] = None
             continue
-        theta_i = float(np.cov(y, x)[0, 1] / np.var(x))
-        per_vintage[v] = theta_i
-
-    # n_total
-    n_total = sum(max(0, len(r) - 1) for _, r in series_list)
+        per_series[label] = float(np.cov(y, x)[0, 1] / np.var(x))
+        n_series += 1
 
     return {
         'theta_hat': theta_hat,
         'se': se,
-        'neg_log_lik': float(res.fun),
+        'neg_log_lik': float(result.fun),
         'fisher_info': fisher,
-        'per_vintage_theta': per_vintage,
+        'per_series_theta': per_series,
         'n_total': n_total,
-        'n_vintages': len([1 for _, r in series_list if len(r) >= 5]),
+        'n_series': n_series,
     }

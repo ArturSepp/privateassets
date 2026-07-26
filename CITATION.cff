@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "privateassets: multi-factor money-weighted PME for private-asset cash flows"
+abstract: >-
+  Estimates risk-adjusted alpha and systematic factor exposures directly from
+  private-asset cash flows, generalising Direct Alpha, KS-PME and GPME from a
+  single benchmark to a tradable multi-factor deflator.
+type: software
+authors:
+  - family-names: Sepp
+    given-names: Artur
+    orcid: "https://orcid.org/0000-0003-4083-4183"
+version: 0.1.0
+date-released: "2026-07-26"
+license: MIT
+repository-code: "https://github.com/ArturSepp/privateassets"
+keywords:
+  - private equity
+  - private credit
+  - public market equivalent
+  - direct alpha
+  - money-weighted returns
+  - unsmoothing
