@@ -1,0 +1,81 @@
+name: Bug report
+description: Report incorrect behaviour, an error, or a numerical problem
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The four things that make a bug fixable here are the
+        version, whether the `factors` extra is installed, a minimal reproducer, and
+        the full traceback. Please fill those in.
+
+  - type: input
+    id: version
+    attributes:
+      label: "privateassets version"
+      description: "Output of `pip show privateassets` (the Version line)"
+      placeholder: "e.g. 0.6.1"
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version and OS
+      description: "Output of `python --version`, plus your operating system"
+      placeholder: "e.g. 3.12.4 on Windows 11"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: extras
+    attributes:
+      label: Which install?
+      description: >-
+        The `factors` extra pulls in factorlasso and enables the shrinkage loading fit,
+        the end-to-end estimator and the resampling inference. Three test modules and
+        several code paths behave differently without it, so this decides where to look.
+      options:
+        - "core: pip install privateassets"
+        - "with factors: pip install privateassets[factors]"
+        - "not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect instead?
+      description: >-
+        For a numerical problem, give the number you got and the number you expected,
+        and say where the expected one comes from.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproducer
+      description: >-
+        The shortest self-contained snippet that shows the problem. Cash-flow data is
+        usually confidential — please build the input with
+        `privateassets.tests.synthetic_data` rather than attaching a fund panel.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Full traceback or incorrect output
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: "I am on the latest released version of privateassets"
+          required: true
+        - label: I searched existing issues for a duplicate
+          required: true

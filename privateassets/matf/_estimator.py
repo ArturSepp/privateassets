@@ -44,7 +44,7 @@ from privateassets.matf._betas import FactorBetas, SignConstraint, fit_factor_be
 from privateassets.matf._deflator import (factor_log_levels_panel, matf_deflator,
                                           rolling_factor_covar)
 from privateassets.matf._inference import BetaBootstrap, bootstrap_factor_betas
-from privateassets.matf._panel_mle import fit_panel_ar1
+from privateassets.matf._panel_mle import BiasCorrection, fit_panel_ar1
 from privateassets.matf._pme import cf_with_terminal_for_vintage, vintage_direct_alpha
 from privateassets.matf._returns import (infer_reporting_frequency, nav_implied_returns,
                                          pool_vintage_returns)
@@ -67,8 +67,10 @@ class MatfResult:
         n_mature: how many vintages cleared the DPI gate and priced.
         betas: the factor-loading fit, or None when loadings were supplied.
         beta_bootstrap: resampled interval on the loadings, when requested.
-        theta: estimated AR(1) smoothing coefficient.
-        theta_se: its asymptotic standard error.
+        theta: the AR(1) smoothing coefficient used, corrected when asked.
+        theta_raw: the uncorrected estimate, or the supplied value.
+        theta_se: asymptotic standard error of the raw estimate. A bias
+            correction moves the point estimate without narrowing it.
         pooled_returns: the pooled manager series before unsmoothing.
         unsmoothed_returns: the series the loadings were fitted on.
         sigma_by_period: point-in-time factor covariance, quarterly units.
@@ -83,6 +85,7 @@ class MatfResult:
     betas: Optional[FactorBetas]
     beta_bootstrap: Optional[BetaBootstrap]
     theta: float
+    theta_raw: float
     theta_se: float
     pooled_returns: pd.Series
     unsmoothed_returns: pd.Series
@@ -101,6 +104,7 @@ def estimate_matf_alpha(cf: pd.DataFrame,
                         dpi_threshold: float = DEFAULT_DPI_THRESHOLD,  # maturity gate for the aggregate
                         beta: Optional[pd.Series] = None,  # None: fit it; otherwise price against this
                         theta: Optional[float] = None,  # None: estimate it from the panel
+                        bias_correction: BiasCorrection = BiasCorrection.NONE,  # for the estimated theta
                         num_bootstrap: int = 0,  # 0 skips the resampled interval
                         block_size: int = 12,  # mean resample block, in reporting periods
                         seed: int = 1,
@@ -129,6 +133,9 @@ def estimate_matf_alpha(cf: pd.DataFrame,
         theta: fix the smoothing coefficient instead of estimating it. Passing a
             value taken from another dataset makes the result depend on data not
             supplied here, so record it if you do.
+        bias_correction: correct the small-sample bias in the estimated
+            coefficient. Ignored when ``theta`` is supplied. The default leaves
+            the estimate alone, and the raw value is reported either way.
         num_bootstrap: resample draws for the interval on the loadings. Zero
             skips it, which is much faster.
         block_size: mean resample block length, in reporting periods.
@@ -152,6 +159,7 @@ def estimate_matf_alpha(cf: pd.DataFrame,
         raise ValueError("no reporting period carries a usable return for any vintage")
 
     theta_se = float('nan')
+    theta_raw = theta
     if theta is None:
         series_list = []
         for vintage in returns_panel.columns:
@@ -160,9 +168,10 @@ def estimate_matf_alpha(cf: pd.DataFrame,
                 series_list.append((str(vintage), values - values.mean()))
         if not series_list:
             raise ValueError("no vintage has enough observations to estimate theta")
-        panel_fit = fit_panel_ar1(series_list)
+        panel_fit = fit_panel_ar1(series_list, bias_correction=bias_correction, seed=seed)
         theta = float(panel_fit['theta_hat'])
         theta_se = float(panel_fit['se'])
+        theta_raw = float(panel_fit['theta_raw'])
 
     unsmoothed = qis.unsmooth_returns_glm(pooled, ar_order=1, theta=theta)
     unsmoothed = pd.Series(unsmoothed, index=pooled.index, name='unsmoothed').dropna()
@@ -222,6 +231,7 @@ def estimate_matf_alpha(cf: pd.DataFrame,
         betas=betas,
         beta_bootstrap=beta_bootstrap,
         theta=theta,
+        theta_raw=theta_raw,
         theta_se=theta_se,
         pooled_returns=pooled,
         unsmoothed_returns=unsmoothed,
@@ -229,6 +239,7 @@ def estimate_matf_alpha(cf: pd.DataFrame,
         provenance=_provenance(freq=freq, covar_span_months=covar_span_months,
                                dpi_threshold=dpi_threshold, seed=seed,
                                num_bootstrap=num_bootstrap, theta=theta,
+                               bias_correction=bias_correction.value,
                                n_periods=len(aligned_index),
                                beta_was_supplied=betas is None,
                                reporting_months=infer_reporting_frequency(navs).median()),

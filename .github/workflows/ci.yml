@@ -8,11 +8,18 @@ on:
 
 jobs:
   test:
+    # Two installs, not one. The core install proves privateassets imports and runs
+    # without factorlasso, which is what its MIT licence claims. The factors install
+    # is the only one that reaches the loading fit, the end-to-end estimator and the
+    # resampling inference: with dev alone those three modules importorskip in full
+    # and the run is green on roughly two thirds of the suite.
+    name: py${{ matrix.python-version }} / ${{ matrix.extras }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.10', '3.11', '3.12']
+        extras: ['dev', 'dev,factors']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,8 +28,24 @@ jobs:
       - name: install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-      - name: lint changed files
+          pip install -e ".[${{ matrix.extras }}]"
+      - name: the factors job must actually have factorlasso
+        # Without this, a failed factorlasso install degrades silently back into the
+        # core run: the tests skip, and the job reports green having not run them.
+        if: contains(matrix.extras, 'factors')
+        run: python -c "import factorlasso; print(factorlasso.__name__, 'present')"
+      - name: the core job must not have factorlasso
+        # Guards the other direction: a transitive dependency pulling it in would
+        # make the core job silently duplicate the factors job.
+        if: ${{ !contains(matrix.extras, 'factors') }}
+        run: |
+          python - <<'PY'
+          import importlib.util, sys
+          if importlib.util.find_spec('factorlasso') is not None:
+              sys.exit('factorlasso present in the core install: something pulls it in transitively')
+          print('core install is factorlasso-free')
+          PY
+      - name: lint
         run: ruff check privateassets
       - name: test
         run: pytest -q

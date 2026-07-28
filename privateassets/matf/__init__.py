@@ -83,8 +83,13 @@ from privateassets.matf._returns import (
     split_by_reporting_frequency,
 )
 from privateassets.matf._panel_mle import (
+    DEFAULT_BIAS_DRAWS,
     MIN_OBS_FOR_THETA,
     MIN_OBS_PER_VINTAGE_MLE,
+    BiasCorrection,
+    bootstrap_corrected_theta,
+    kendall_corrected_theta,
+    simulate_panel_ar1,
     fisher_info_panel_ar1,
     fit_panel_ar1,
     panel_ar1_neg_log_likelihood,
@@ -152,4 +157,9 @@ __all__ = [
     'fisher_info_panel_ar1',
     'MIN_OBS_FOR_THETA',
     'MIN_OBS_PER_VINTAGE_MLE',
+    'BiasCorrection',
+    'kendall_corrected_theta',
+    'bootstrap_corrected_theta',
+    'simulate_panel_ar1',
+    'DEFAULT_BIAS_DRAWS',
 ]

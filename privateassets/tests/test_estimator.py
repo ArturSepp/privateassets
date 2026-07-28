@@ -251,3 +251,45 @@ def test_runs_on_the_unrelated_synthetic_panel():
     result = estimate_matf_alpha(cf, navs, levels, make_rf_quarterly(quarter_ends))
     assert len(result.vintage_alpha) == 5
     assert np.isfinite(result.cap_weighted_alpha)
+
+
+def test_the_bias_correction_closes_part_of_the_theta_gap_and_names_the_rest():
+    """Two biases push theta down, and only one of them is correctable.
+
+    Removing the demeaning bias moves the estimate towards the truth but does
+    not reach it. What remains is measurement error in the reported returns:
+    modified Dietz is noisiest while capital is still being called, and error in
+    a regressor attenuates its coefficient. Simulating from the fitted model
+    reproduces the fitted persistence, not the true one, so no small-sample
+    correction recovers it.
+
+    On this panel the measurement-error component is several times the
+    small-sample one, which is the ordering worth knowing before choosing what
+    to fix next.
+    """
+    from privateassets.matf import BiasCorrection
+    cf, navs, levels, rf = _panel(theta=TRUE_THETA)
+    raw = estimate_matf_alpha(cf, navs, levels, rf, beta=FIXED_BETA)
+    corrected = estimate_matf_alpha(cf, navs, levels, rf, beta=FIXED_BETA,
+                                    bias_correction=BiasCorrection.BOOTSTRAP)
+
+    assert corrected.theta_raw == pytest.approx(raw.theta)
+    assert raw.theta < corrected.theta < TRUE_THETA          # closer, not there
+    small_sample = corrected.theta - corrected.theta_raw
+    measurement_error = TRUE_THETA - corrected.theta
+    assert measurement_error > small_sample                   # and it is the larger one
+
+
+def test_the_correction_is_recorded_in_provenance():
+    from privateassets.matf import BiasCorrection
+    result = estimate_matf_alpha(*_panel(), bias_correction=BiasCorrection.KENDALL)
+    assert result.provenance['bias_correction'] == 'kendall'
+    assert result.theta != result.theta_raw
+
+
+def test_a_supplied_theta_ignores_the_correction():
+    from privateassets.matf import BiasCorrection
+    cf, navs, levels, rf = _panel()
+    result = estimate_matf_alpha(cf, navs, levels, rf, theta=0.25,
+                                 bias_correction=BiasCorrection.BOOTSTRAP)
+    assert result.theta == 0.25 and result.theta_raw == 0.25

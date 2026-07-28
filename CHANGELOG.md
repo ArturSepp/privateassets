@@ -1,5 +1,126 @@
 # Changelog
 
+## 0.6.1 (2026-07-28)
+
+**The ORCID iD in `CITATION.cff` was not the author's.** It read
+0000-0003-4083-4183 from the first release to this one; the correct iD is
+0000-0002-7038-1748, which the other repositories in the stack already carry. An
+iD in `CITATION.cff` is what Zenodo attaches a minted DOI to, so every release
+archived before this one credits a stranger and does not appear on the author's
+profile. Anyone who has already cited this package from `CITATION.cff` should
+re-export the entry.
+
+### Added
+
+- `test_factorlasso_is_imported_lazily_everywhere` — no module may import the
+  GPL-3 optional extra at import time, which is what keeps a core install MIT and
+  working. A lazy import inside a function still passes, because that is the
+  mechanism.
+- `make_collinear_factor_panel` in the test data, and two tests over it. Every
+  loading-fit test previously ran on near-orthogonal factors (maximum absolute
+  correlation 0.19), so nothing exercised the regime the shrinkage estimator
+  exists for.
+- `test_the_citation_orcid_is_the_authors` and `test_the_citation_date_is_a_date`
+  alongside the existing `test_the_release_triple_agrees`. The wrong iD survived
+  every release because it was a string no test read; `date-released` is checked
+  for ISO shape because a bare year passes a human's glance and sorts as nothing.
+- `CONTRIBUTING.md` and `.github/ISSUE_TEMPLATE/bug_report.yml`. The bug template
+  asks which install the reporter is on, because the `factors` extra changes which
+  code paths run; `CONTRIBUTING.md` states the MIT/GPL-3 boundary as a rule a
+  contributor can break, and asks a pull request to say when a number moves.
+
+### Fixed
+
+- CI installed `.[dev]`, which does not carry `factorlasso`, so `test_betas`,
+  `test_estimator` and `test_inference` skipped in full on every push and the run
+  reported green on 118 of 171 tests. The workflow now runs both installs, and
+  each job asserts whether `factorlasso` is present rather than trusting the
+  install to have worked. The lint step was labelled "lint changed files" while
+  running `ruff check privateassets`, the whole package; the label now says what
+  the step does.
+- The `_betas.py` docstring claimed ordinary least squares "does not work" on a
+  private-asset panel. Measured, it works and is simply less accurate: mean
+  absolute loading error 0.0797 against 0.0483 at zero correlation, and 0.1696
+  against 0.1290 at 0.98, with a wrong-signed loading in 1 of 200 fits. The
+  docstring now carries the table and
+  `test_shrinkage_beats_least_squares_under_collinearity` reproduces it.
+
+### Changed
+
+- Dependency floor raised to `qis>=5.2.1`, which carries the AR-residual fix
+  reported under 0.6.0.
+
+**No number in this package changes.** `qis 5.2.1` differs from `5.1.0` in
+`bootstrap_numba.py` alone, and within that module only in `compute_ar_residuals`
+and the index draw inside `bootstrap_ar_process`. This package calls neither. Its
+resampling goes through `qis.generate_bootstrapped_indices`, which is untouched,
+so bootstrap intervals are bit-identical across the two versions. The suite as it
+stood at 0.6.0 — 169 tests — passed against `5.2.1` before anything else in this
+release was written.
+
+The floor is raised anyway because the defects were silent. `compute_ar_residuals`
+left NaN in the residuals whenever the input had gaps, treated the observations
+either side of a gap as one period apart, and returned one fewer row than
+`bootstrap_ar_process` then drew indices over — and the consumer is `@njit` with
+bounds checking off, so the out-of-bounds row was read rather than raising. A
+future release of this package that reaches for the AR path should not be able to
+resolve an older `qis`.
+
+## 0.6.0 (2026-07-26)
+
+The smoothing coefficient can now be bias-corrected, and the part of its bias
+that no correction reaches is separated out and measured.
+
+### Added
+
+- `BiasCorrection`, `kendall_corrected_theta`, `bootstrap_corrected_theta`,
+  `simulate_panel_ar1`, and a `bias_correction=` argument on `fit_panel_ar1` and
+  `estimate_matf_alpha`. The default is `NONE`: an estimate is never adjusted
+  without being asked.
+- `theta_raw` on the result, alongside the measured `bias`, so a corrected
+  number always carries what it was corrected from.
+
+### Two biases, only one correctable
+
+Demeaning a short AR(1) biases its coefficient by about `-(1 + 3 theta) / n`.
+Measured over 60 replications on seeded panels, mean absolute error:
+
+| true theta | n | raw | Kendall | bootstrap |
+|---|---|---|---|---|
+| 0.15 | 40 | 0.0359 | 0.0014 | 0.0001 |
+| 0.30 | 40 | 0.0403 | 0.0091 | 0.0015 |
+| 0.45 | 40 | 0.0446 | 0.0169 | 0.0030 |
+| 0.30 | 80 | 0.0120 | 0.0125 | 0.0030 |
+
+The parametric bootstrap dominates. The analytic correction is first-order and
+slightly overcorrects by n = 80, so `BOOTSTRAP` is the one to use.
+
+The second bias is measurement error, and it is the larger one. Modified Dietz
+returns are noisiest while capital is still being called and the denominator is
+dominated by the call itself. Error in a regressor attenuates its coefficient,
+and simulating from the fitted model reproduces the fitted persistence rather
+than the true one, so no small-sample correction recovers it. On the end-to-end
+synthetic panel with a true theta of 0.30:
+
+    raw estimate                    0.1606
+    demeaning bias removed          0.1958   (+0.0352)
+    truth                           0.3000   (+0.1042 measurement error)
+    volatility uplift 1/(1-theta)   1.191 -> 1.244 -> 1.429
+
+The measurement-error component is three times the small-sample one.
+`test_the_bias_correction_closes_part_of_the_theta_gap_and_names_the_rest` pins
+both, and the ordering, so neither can be quietly forgotten.
+
+### Reported upstream, not worked around
+
+`qis.compute_ar_residuals` raises `KeyError: 0` on pandas 3.0: line 9 reads
+`ar_model.params[0]`, but `params` is a labelled Series (`const`, `x.L1`), so
+that is a label lookup rather than a positional one. It takes
+`qis.bootstrap_ar_process` down with it. The fix belongs in the `qis` repository,
+and shipped there in `5.2.1` along with three silent defects found alongside it.
+This package uses a parametric simulation instead, which is the right method for
+a bias correction regardless.
+
 ## 0.5.0 (2026-07-26)
 
 The estimator runs end to end in one call. `estimate_matf_alpha` composes

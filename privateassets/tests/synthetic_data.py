@@ -190,3 +190,57 @@ def make_factor_driven_panel(beta: np.ndarray = None,  # true factor loadings
     cf = pd.DataFrame(cf_rows).sort_values(['fund', 'date']).reset_index(drop=True)
     navs = pd.DataFrame(nav_rows).sort_values(['fund', 'date']).reset_index(drop=True)
     return cf, navs, levels, rf
+
+
+def make_collinear_factor_panel(rho: float = 0.90,  # correlation between Equity and Credit
+                                beta: np.ndarray = None,  # true loadings, in FACTOR_NAMES order
+                                n_quarters: int = 60,  # fifteen years, a realistic fund life
+                                residual_vol: float = 0.03,  # idiosyncratic return volatility
+                                seed: int = SEED,
+                                ) -> Tuple[pd.Series, pd.DataFrame, np.ndarray]:
+    """an asset return driven by known loadings on a deliberately collinear factor panel.
+
+    The other generators here draw factors independently, so they produce a
+    near-orthogonal panel (maximum absolute correlation about 0.19) and cannot
+    exercise the regime the shrinkage estimator exists for. This one sets the
+    equity-credit correlation directly, which is the pair that matters in a
+    private-credit universe.
+
+    Args:
+        rho: correlation between the Equity and Credit factors, in [-1, 1].
+        beta: true loadings in ``FACTOR_NAMES`` order. None uses a
+            credit-and-equity profile.
+        n_quarters: length of the panel.
+        residual_vol: standard deviation of the return not explained by factors.
+        seed: seed for the draw.
+
+    Returns:
+        Tuple of (asset returns, factor returns, true beta). Both series are
+        quarterly and share a quarter-end index.
+
+    Raises:
+        ValueError: if ``rho`` is outside [-1, 1], or if ``beta`` does not have
+            one entry per factor.
+    """
+    if not -1.0 <= rho <= 1.0:
+        raise ValueError(f"rho must lie in [-1, 1], got {rho!r}")
+    if beta is None:
+        beta = np.array([0.70, 0.00, 0.50, 0.00])
+    beta = np.asarray(beta, dtype=float)
+    if beta.shape != (len(FACTOR_NAMES),):
+        raise ValueError(f"beta must have one entry per factor {FACTOR_NAMES}, got {beta.shape}")
+
+    rng = np.random.default_rng(seed)
+    equity = rng.normal(0.0, 0.08, n_quarters)
+    independent = rng.normal(0.0, 0.08, n_quarters)
+    credit = rho * equity + np.sqrt(1.0 - rho ** 2) * independent
+    index = pd.date_range('2010-03-31', periods=n_quarters, freq='QE')
+    factor_returns = pd.DataFrame({'Equity': equity,
+                                   'Rates': rng.normal(0.0, 0.02, n_quarters),
+                                   'Credit': credit,
+                                   'Commodities': rng.normal(0.0, 0.10, n_quarters)},
+                                  index=index)[FACTOR_NAMES]
+    asset_returns = pd.Series(factor_returns.values @ beta
+                              + rng.normal(0.0, residual_vol, n_quarters),
+                              index=index, name='asset')
+    return asset_returns, factor_returns, beta

@@ -130,6 +130,45 @@ def test_no_proprietary_identifier_ships(pattern):
     assert hits == [], f"pattern {pattern!r} found: {hits}"
 
 
+def _module_scope_imports(tree):
+    """Import nodes reachable at module scope, not descending into def or class bodies.
+
+    A lazy import inside a function is how an optional dependency is kept
+    optional, so the distinction between the two positions is the whole point.
+    """
+    found, stack = [], list(tree.body)
+    while stack:
+        node = stack.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue  # a lazy import lives here, and is allowed
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            found.append(node)
+        for field in ('body', 'orelse', 'finalbody', 'handlers'):
+            stack.extend(getattr(node, field, []) or [])
+    return found
+
+
+def test_factorlasso_is_imported_lazily_everywhere():
+    """``factorlasso`` is a GPL-3 optional extra, so no module may import it at import time.
+
+    A module-scope import would make a core install fail at
+    ``import privateassets.matf``, turning the ``[factors]`` extra into a hard
+    dependency by accident and putting every install in the position of a
+    combined work with GPL-3 code.
+    """
+    offenders = []
+    for path in _python_sources():
+        for node in _module_scope_imports(ast.parse(path.read_text(encoding='utf-8'))):
+            if isinstance(node, ast.Import):
+                names = {a.name.split('.')[0] for a in node.names}
+            else:
+                names = {(node.module or '').split('.')[0]}
+            if 'factorlasso' in names:
+                offenders.append(f"{path.name}:{node.lineno}")
+    assert offenders == [], (f"factorlasso imported at module scope in {offenders}: "
+                            f"move it inside the function that needs it")
+
+
 def test_no_competing_stack_is_imported():
     """quantstats, pyfolio, empyrical, ffn and bt are not dependencies."""
     banned = {'quantstats', 'pyfolio', 'empyrical', 'ffn', 'bt', 'seaborn'}
@@ -171,3 +210,81 @@ def test_optimalportfolios_is_not_imported():
 
 def test_version_is_exposed():
     assert re.fullmatch(r'\d+\.\d+\.\d+', privateassets.__version__)
+
+
+def test_the_release_triple_agrees():
+    """``__init__.py``, ``pyproject.toml`` and ``CITATION.cff`` state one version.
+
+    A citation pointing at a version that was never released is a provenance
+    defect, not a typo: it breaks the traceability from a number in a manuscript
+    back to the code that produced it.
+    """
+    repo_root = PACKAGE_ROOT.parent
+    pyproject = repo_root / 'pyproject.toml'
+    citation = repo_root / 'CITATION.cff'
+    if not (pyproject.exists() and citation.exists()):
+        pytest.skip('not a source checkout')
+
+    declared = {'privateassets.__version__': privateassets.__version__}
+    match = re.search(r'^version\s*=\s*"([^"]+)"', pyproject.read_text(encoding='utf-8'),
+                      flags=re.MULTILINE)
+    declared['pyproject.toml'] = match.group(1) if match else None
+    match = re.search(r'^version:\s*(\S+)', citation.read_text(encoding='utf-8'),
+                      flags=re.MULTILINE)
+    declared['CITATION.cff'] = match.group(1).strip('"\'') if match else None
+
+    assert len(set(declared.values())) == 1, f"versions disagree: {declared}"
+
+
+def test_the_citation_date_is_a_date():
+    """``date-released`` is an ISO date.
+
+    A bare year passes a human's glance and sorts as nothing wherever the field is
+    read as a date, Zenodo included.
+    """
+    citation = PACKAGE_ROOT.parent / 'CITATION.cff'
+    if not citation.exists():
+        pytest.skip('not a source checkout')
+    match = re.search(r'^date-released:\s*(\S+)', citation.read_text(encoding='utf-8'),
+                      flags=re.MULTILINE)
+    assert match is not None, 'CITATION.cff has no date-released field'
+    date_released = match.group(1).strip('"\'')
+    assert re.fullmatch(r'\d{4}-\d{2}-\d{2}', date_released), (
+        f"date-released must be YYYY-MM-DD, got {date_released!r}")
+
+
+def test_the_citation_orcid_is_the_authors():
+    """The recorded ORCID iD is the author's.
+
+    It read 0000-0003-4083-4183 until 0.6.1, which is not his. An iD in
+    ``CITATION.cff`` is what Zenodo attaches a minted DOI to, so a wrong one credits
+    the release to a stranger and the author's own profile never shows it. Nothing
+    in this repository would have caught it: the iD was a string no test read.
+    """
+    citation = PACKAGE_ROOT.parent / 'CITATION.cff'
+    if not citation.exists():
+        pytest.skip('not a source checkout')
+    found = re.findall(r'^\s+orcid:\s*(\S+)', citation.read_text(encoding='utf-8'),
+                       flags=re.MULTILINE)
+    assert found == ['"https://orcid.org/0000-0002-7038-1748"'], f"got {found}"
+
+
+def test_the_qis_floor_is_at_least_the_version_under_test():
+    """The declared floor cannot be below the ``qis`` the suite actually ran on.
+
+    A floor that lags the installed version lets a downstream install resolve a
+    ``qis`` these tests never exercised.
+    """
+    repo_root = PACKAGE_ROOT.parent
+    pyproject = repo_root / 'pyproject.toml'
+    if not pyproject.exists():
+        pytest.skip('not a source checkout')
+    match = re.search(r'"qis>=([^"]+)"', pyproject.read_text(encoding='utf-8'))
+    assert match is not None, 'no qis floor declared in pyproject.toml'
+
+    from importlib.metadata import version
+    def as_tuple(text: str):
+        return tuple(int(part) for part in re.findall(r'\d+', text)[:3])
+
+    floor, installed = as_tuple(match.group(1)), as_tuple(version('qis'))
+    assert floor <= installed, f"declared floor qis>={match.group(1)} exceeds installed {version('qis')}"

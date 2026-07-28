@@ -6,9 +6,13 @@ import pytest
 # qis / project
 import qis
 from privateassets.matf import (
+    BiasCorrection,
+    bootstrap_corrected_theta,
     fisher_info_panel_ar1,
     fit_panel_ar1,
+    kendall_corrected_theta,
     panel_ar1_neg_log_likelihood,
+    simulate_panel_ar1,
 )
 from privateassets.tests.synthetic_data import make_ar1_panel
 
@@ -136,3 +140,125 @@ def test_estimated_theta_drives_the_qis_unsmoother():
     observed = pd.Series(panel[0][1], index=pd.date_range('2005-03-31', periods=80, freq='QE'))
     unsmoothed = qis.unsmooth_returns_glm(observed, ar_order=1, theta=theta_hat)
     assert unsmoothed.std() > observed.std()
+
+
+# --- bias correction ---------------------------------------------------------
+
+def test_no_correction_is_the_default_and_changes_nothing():
+    """A correction is never applied without being asked for."""
+    panel = make_ar1_panel(n_series=8, n_obs=60, theta=0.3)
+    result = fit_panel_ar1(panel)
+    assert result['bias_correction'] == 'none'
+    assert result['theta_hat'] == result['theta_raw']
+    assert np.isnan(result['bias'])
+
+
+def test_the_raw_estimate_is_always_reported():
+    """A corrected result still carries what it was corrected from."""
+    panel = make_ar1_panel(n_series=8, n_obs=60, theta=0.3)
+    raw = fit_panel_ar1(panel)['theta_hat']
+    for correction in (BiasCorrection.KENDALL, BiasCorrection.BOOTSTRAP):
+        result = fit_panel_ar1(panel, bias_correction=correction, num_bias_draws=20)
+        assert result['theta_raw'] == pytest.approx(raw)
+        assert result['theta_hat'] == pytest.approx(raw - result['bias'])
+
+
+def test_kendall_correction_inverts_its_own_bias_formula():
+    """Applying the bias to the corrected value returns the raw estimate."""
+    n = 50.0
+    for theta_hat in (-0.2, 0.0, 0.25, 0.6):
+        corrected = kendall_corrected_theta(theta_hat, n)
+        assert corrected - (1.0 + 3.0 * corrected) / n == pytest.approx(theta_hat)
+
+
+def test_kendall_correction_is_upward_and_shrinks_with_length():
+    """The bias it removes is smaller on a longer panel."""
+    short = kendall_corrected_theta(0.3, 40.0)
+    long = kendall_corrected_theta(0.3, 400.0)
+    assert short > long > 0.3
+
+
+def test_kendall_correction_rejects_a_panel_too_short_to_define_it():
+    with pytest.raises(ValueError, match='must exceed 3'):
+        kendall_corrected_theta(0.3, 3.0)
+
+
+def test_bootstrap_correction_reduces_the_bias():
+    """Measured, not assumed: the corrected estimate lands nearer the truth.
+
+    Averaged over replications, because a single draw is noisier than the bias
+    being corrected.
+    """
+    true_theta, n_obs = 0.30, 40
+    raw_errors, corrected_errors = [], []
+    for replication in range(12):
+        panel = make_ar1_panel(n_series=12, n_obs=n_obs, theta=true_theta,
+                               seed=2000 + replication)
+        raw_errors.append(fit_panel_ar1(panel)['theta_hat'] - true_theta)
+        corrected_errors.append(
+            fit_panel_ar1(panel, bias_correction=BiasCorrection.BOOTSTRAP,
+                          num_bias_draws=30, seed=5)['theta_hat'] - true_theta)
+    assert np.mean(raw_errors) < -0.02  # the raw estimate understates
+    assert abs(np.mean(corrected_errors)) < abs(np.mean(raw_errors))
+
+
+def test_the_measured_bias_is_negative_where_the_estimator_understates():
+    panel = make_ar1_panel(n_series=12, n_obs=40, theta=0.35)
+    result = fit_panel_ar1(panel, bias_correction=BiasCorrection.BOOTSTRAP,
+                           num_bias_draws=30, seed=5)
+    assert result['bias'] < 0.0
+    assert result['theta_hat'] > result['theta_raw']
+
+
+def test_the_bootstrap_correction_is_reproducible():
+    panel = make_ar1_panel(n_series=8, n_obs=50, theta=0.3)
+    kwargs = dict(bias_correction=BiasCorrection.BOOTSTRAP, num_bias_draws=25, seed=42)
+    assert (fit_panel_ar1(panel, **kwargs)['theta_hat']
+            == fit_panel_ar1(panel, **kwargs)['theta_hat'])
+
+
+def test_a_different_seed_gives_a_different_correction():
+    panel = make_ar1_panel(n_series=8, n_obs=50, theta=0.3)
+    a = fit_panel_ar1(panel, bias_correction=BiasCorrection.BOOTSTRAP,
+                      num_bias_draws=25, seed=1)['theta_hat']
+    b = fit_panel_ar1(panel, bias_correction=BiasCorrection.BOOTSTRAP,
+                      num_bias_draws=25, seed=2)['theta_hat']
+    assert a != b
+
+
+def test_correction_leaves_a_long_panel_almost_alone():
+    """There is little bias to remove when the series are long."""
+    panel = make_ar1_panel(n_series=10, n_obs=400, theta=0.3)
+    result = fit_panel_ar1(panel, bias_correction=BiasCorrection.BOOTSTRAP,
+                           num_bias_draws=25, seed=3)
+    assert abs(result['bias']) < 0.02
+
+
+def test_simulated_panels_match_the_shape_they_were_asked_for():
+    rng = np.random.default_rng(0)
+    panel = simulate_panel_ar1(0.3, sigmas=[0.02, 0.05], lengths=[30, 45], rng=rng)
+    assert [len(values) for _, values in panel] == [30, 45]
+    assert all(abs(values.mean()) < 1e-12 for _, values in panel)  # demeaned
+
+
+def test_simulated_series_start_stationary():
+    """A zero start would leave a transient that reads as bias and gets removed.
+
+    The first quarter of a simulated series should be no less variable than the
+    last, which a zero-started recursion would violate.
+    """
+    rng = np.random.default_rng(1)
+    panel = simulate_panel_ar1(0.6, sigmas=[0.03] * 40, lengths=[80] * 40, rng=rng)
+    values = np.vstack([v for _, v in panel])
+    assert values[:, :20].std() == pytest.approx(values[:, -20:].std(), rel=0.15)
+
+
+def test_bootstrap_correction_rejects_a_non_positive_draw_count():
+    with pytest.raises(ValueError, match='num_draws must be positive'):
+        bootstrap_corrected_theta(0.3, [0.02], [40], num_draws=0)
+
+
+def test_a_correction_on_an_unusable_panel_is_refused():
+    with pytest.raises(ValueError, match='long enough'):
+        fit_panel_ar1([('a', np.array([0.01, -0.01]))],
+                      bias_correction=BiasCorrection.KENDALL)

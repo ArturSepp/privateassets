@@ -12,7 +12,8 @@ from privateassets.matf import (
     fit_factor_betas,
     matf_deflator,
 )
-from privateassets.tests.synthetic_data import FACTOR_NAMES, make_factor_levels
+from privateassets.tests.synthetic_data import (FACTOR_NAMES, make_collinear_factor_panel,
+                                               make_factor_levels)
 
 factorlasso = pytest.importorskip('factorlasso',
                                   reason='factor loadings need the [factors] extra')
@@ -179,3 +180,58 @@ def test_betas_feed_the_deflator_end_to_end():
     assert deflators[0] == pytest.approx(np.exp(0.5 * (fit.beta.values @ np.diag(
         fit.sigma_quarterly_insample.values) - fit.beta.values
         @ fit.sigma_quarterly_insample.values @ fit.beta.values) * (1 / 365.25 * 4)), rel=0.05)
+
+
+def test_the_collinear_panel_is_actually_collinear():
+    """The generator must produce the regime it claims, or the test below is vacuous."""
+    _, factors, _ = make_collinear_factor_panel(rho=0.95)
+    realised = factors['Equity'].corr(factors['Credit'])
+    assert realised == pytest.approx(0.95, abs=0.06)
+    _, orthogonal, _ = make_collinear_factor_panel(rho=0.0)
+    assert abs(orthogonal['Equity'].corr(orthogonal['Credit'])) < 0.25
+
+
+@pytest.mark.parametrize('rho', [0.0, 0.90, 0.98])
+def test_shrinkage_beats_least_squares_under_collinearity(rho: float):
+    """The shrunk estimator recovers a known beta more accurately than plain OLS.
+
+    This is the measured justification for the ``factorlasso`` dependency, and it
+    replaces the earlier claim that least squares "does not work". Least squares
+    degrades with collinearity rather than breaking, so the comparison is on
+    accuracy. Averaged over seeds, because a single draw is noise.
+    """
+    ols_errors, shrunk_errors = [], []
+    for seed in range(12):
+        asset, factors, beta = make_collinear_factor_panel(rho=rho, seed=seed)
+        design = np.column_stack([np.ones(len(factors)), factors.values])
+        coefficients, *_ = np.linalg.lstsq(design, asset.values, rcond=None)
+        ols_errors.append(np.abs(coefficients[1:] - beta).mean())
+
+        fit = fit_factor_betas(asset_returns=asset, factor_returns=factors,
+                               sign_constraints={'Equity': SignConstraint.POS,
+                                                 'Credit': SignConstraint.POS},
+                               span=None)
+        shrunk_errors.append(np.abs(fit.beta.reindex(factors.columns).values - beta).mean())
+
+    assert np.mean(shrunk_errors) < np.mean(ols_errors), (
+        f"rho={rho}: shrunk {np.mean(shrunk_errors):.4f} vs OLS {np.mean(ols_errors):.4f}")
+
+
+def test_the_loading_error_grows_with_collinearity():
+    """Both estimators degrade as the factors become collinear.
+
+    Pins the direction the docstring table reports, so a change that flattened it
+    would be visible rather than silently improving the numbers.
+    """
+    def mean_error(rho: float) -> float:
+        errors = []
+        for seed in range(12):
+            asset, factors, beta = make_collinear_factor_panel(rho=rho, seed=seed)
+            fit = fit_factor_betas(asset_returns=asset, factor_returns=factors,
+                                   sign_constraints={'Equity': SignConstraint.POS,
+                                                     'Credit': SignConstraint.POS},
+                                   span=None)
+            errors.append(np.abs(fit.beta.reindex(factors.columns).values - beta).mean())
+        return float(np.mean(errors))
+
+    assert mean_error(0.98) > mean_error(0.0)

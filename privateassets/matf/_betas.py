@@ -1,12 +1,30 @@
 """
 privateassets.matf._betas — factor loadings for the MATF deflator.
 
-The deflator needs a loading vector beta. Estimating it by ordinary least
-squares on a private-asset return series does not work: the panel is short, the
-factors are collinear (equity and credit run above 0.9 correlation in the
-post-2010 sample), and nothing stops the fit returning a negative equity beta
-for a buyout fund. The estimate has to be shrunk, and it has to respect the
-economics.
+The deflator needs a loading vector beta. Ordinary least squares produces one,
+and it is usable: over a fifteen-year quarterly history it degrades with
+collinearity rather than breaking, and a wrong-signed loading is rare. Shrinkage
+is worth its dependency because it is more accurate, not because the alternative
+fails.
+
+Measured over 40 seeds on that history, mean absolute loading error against a
+known beta, with equity and credit correlated at ``rho``:
+
+======  ==========  ================  ================
+rho     OLS         this estimator    OLS sign flips
+======  ==========  ================  ================
+0.00    0.0797      0.0483            0/40
+0.50    0.0831      0.0458            0/40
+0.90    0.1095      0.0713            0/40
+0.95    0.1296      0.0915            0/40
+0.98    0.1696      0.1290            1/40
+======  ==========  ================  ================
+
+Shrinkage cuts the error by roughly a third throughout, by a margin that widens
+only slowly with collinearity. The sign constraint binds once in 200 fits, so it
+is insurance against a loading the economics forbids rather than a routine
+correction. Reproduced by
+``test_shrinkage_beats_least_squares_under_collinearity``.
 
 This wraps the hierarchical cluster group lasso from ``factorlasso``. Correlated
 factors are clustered and penalised as a group, so collinear factors shrink

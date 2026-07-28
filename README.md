@@ -156,11 +156,23 @@ unsmoothed = qis.unsmooth_returns_glm(returns, ar_order=1, theta=result['theta_h
 The inversion itself is `qis.unsmooth_returns_glm`. This package does not carry a
 second copy of it.
 
-**The estimate is biased down on short panels.** Demeaning an AR(1) of length n
-biases the coefficient by about `-(1 + 3θ)/n`. At 80 quarterly observations and
-θ = 0.35 that is roughly 2.5 percentage points, and it flows into the volatility
-inflation `1/(1-θ)`, understating unsmoothed risk. No bias correction is applied.
-`test_short_panels_understate_theta_by_the_kendall_bias` pins the magnitude.
+**The estimate is biased down by two separate mechanisms, and only one is
+correctable.**
+
+Demeaning a short AR(1) biases the coefficient by about `-(1 + 3θ)/n`. Pass
+`bias_correction=BiasCorrection.BOOTSTRAP` to remove it — a parametric
+simulation from the fitted model, which cuts mean absolute error by roughly an
+order of magnitude and handles heterogeneous series lengths that the analytic
+`KENDALL` formula only approximates.
+
+What remains is measurement error. Modified Dietz returns are noisiest while
+capital is still being called, and error in a regressor attenuates its
+coefficient. On the end-to-end synthetic panel with a true θ of 0.30, the raw
+estimate is 0.161, correcting the demeaning bias gives 0.196, and the remaining
+0.104 is measurement error that no small-sample correction reaches. It is the
+larger of the two.
+
+Corrections are off by default and `theta_raw` is always reported.
 
 ## Comparing against the single-factor incumbents
 
@@ -238,7 +250,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-152 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
+177 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
 draws a seeded panel carrying the defects real panels carry: irregular cash-flow
 dates, a J-curve, unrealised residual NAVs, and a factor panel that starts after
 the first fund does.
@@ -246,19 +258,21 @@ the first fund does.
 Tests needing the `[factors]` extra skip rather than fail, so a core install
 stays green.
 
-Four of the tests are enforcement rather than behaviour — they fail the suite if
-the package imports with a filesystem side effect, documents an argument it does
-not take, ships a proprietary identifier, or imports a competing analytics stack.
+Seven of the tests are enforcement rather than behaviour — they fail the suite
+if the package imports with a filesystem side effect, documents an argument it
+does not take, ships a proprietary identifier, imports a competing analytics
+stack, imports `factorlasso` at module scope, lets the release triple disagree,
+or declares a `qis` floor the suite never ran on.
 
 ## Status
 
-`0.5.0` runs from fund reporting to alpha in one call, and each stage is usable
+`0.6.1` runs from fund reporting to alpha in one call, and each stage is usable
 on its own. The reporting and factsheet layer is not in this release. See
 `CHANGELOG.md`.
 
 Two caveats travel with every number and are recorded in `provenance`: the
-loadings are in-sample, and the estimated smoothing coefficient is attenuated by
-measurement noise in the J-curve period.
+loadings are in-sample, and the smoothing coefficient is attenuated by
+measurement noise in the J-curve period even after bias correction.
 
 ## Citation
 
