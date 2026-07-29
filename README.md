@@ -1,6 +1,19 @@
 # privateassets
 
-Multi-factor, money-weighted PME for private-asset cash flows.
+**Multi-factor, money-weighted PME for private-asset cash flows — risk-adjusted
+alpha and systematic factor exposures estimated directly from fund reporting,
+from NAVs and cash flows to alpha in one call**
+
+[![PyPI](https://img.shields.io/pypi/v/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
+[![Python](https://img.shields.io/pypi/pyversions/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![CI](https://github.com/ArturSepp/privateassets/actions/workflows/ci.yml/badge.svg)](https://github.com/ArturSepp/privateassets/actions)
+[![Downloads](https://static.pepy.tech/badge/privateassets)](https://pepy.tech/project/privateassets)
+[![Monthly](https://static.pepy.tech/badge/privateassets/month)](https://pepy.tech/project/privateassets)
+
+---
+
+## Why privateassets
 
 A single-benchmark PME divides fund cash flows by the return of one index. That
 charges the fund for one exposure and credits everything else to skill. The MATF
@@ -8,9 +21,56 @@ deflator divides them by the return of a *tradable multi-factor portfolio*, so a
 distressed-credit fund is measured against the credit and equity basket it
 actually loaded on rather than against equities alone.
 
-The package generalises Direct Alpha, KS-PME and GPME from one benchmark to a
-multi-factor deflator, and ships the classical measures alongside so the two can
-be compared on the same cash flows.
+**privateassets generalises Direct Alpha, KS-PME and GPME from one benchmark to
+a multi-factor deflator**, and ships the classical measures alongside so the two
+can be compared on the same cash flows.
+
+### Key differentiators
+
+**Fund reporting to alpha in one call.** `estimate_matf_alpha` takes cash flows,
+NAVs and factor levels and returns capital-weighted and per-vintage alpha,
+factor loadings, bootstrap intervals and full provenance. It returns every
+intermediate it computed, and writes nothing. Each stage — NAV-implied returns,
+unsmoothing, factor betas, deflators — is also usable on its own.
+
+**Point-in-time by construction.** The covariance inside the deflator uses only
+returns observed by each quarter end: deleting every observation after a vintage
+closes leaves its alpha unchanged to 1e-12, which
+`test_no_look_ahead_end_to_end` asserts.
+
+**One panel, one reporting frequency.** Nothing is forward-filled or
+interpolated; a panel whose vintages report at different frequencies raises,
+naming the offenders. Interpolating them onto a common grid is an assumption
+about an unobserved path, and this package does not make it for you.
+
+**The incumbents ship alongside.** `kn24_benchmark_deflator` and
+`kn16_gpme_deflator` price the same cash flows against one market index, so the
+multi-factor result is reported next to what it replaces — and passing a single
+benchmark's reciprocal index ratio as the deflator reproduces classical Direct
+Alpha to root-finder tolerance, pinned by a test.
+
+**Built on the stack, not duplicating it.** Unsmoothing, covariance estimation
+and block resampling delegate to [`qis`](https://pypi.org/project/qis/);
+sign-constrained shrinkage betas to
+[`factorlasso`](https://pypi.org/project/factorlasso/) through the optional
+`[factors]` extra.
+
+### When to use it — and when not
+
+Use `privateassets` to estimate risk-adjusted alpha and systematic factor
+exposures of private-equity and private-credit funds from their cash flows and
+NAVs, to unsmooth appraisal-based NAV returns with bias-corrected AR(1)
+estimates, and to report multi-factor and classical PME side by side on the
+same panel.
+
+Do not reach for it for portfolio construction — that is its sibling
+[`optimalportfolios`](https://github.com/ArturSepp/OptimalPortfolios). The
+reporting and factsheet layer is not in this release, no data ships with the
+package, and the factor loadings are in-sample by construction — one beta over
+the whole panel — so it is a measurement tool, not a live risk system. The
+caveats travel with every number in `provenance`.
+
+---
 
 ## Install
 
