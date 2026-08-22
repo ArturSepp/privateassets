@@ -10,8 +10,8 @@ authors:
   - family-names: Sepp
     given-names: Artur
     orcid: "https://orcid.org/0000-0002-7038-1748"
-version: 0.6.1
-date-released: "2026-07-28"
+version: 0.6.2
+date-released: "2026-08-22"
 license: MIT
 repository-code: "https://github.com/ArturSepp/privateassets"
 keywords:

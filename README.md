@@ -318,15 +318,21 @@ the first fund does.
 Tests needing the `[factors]` extra skip rather than fail, so a core install
 stays green.
 
-Seven of the tests are enforcement rather than behaviour — they fail the suite
-if the package imports with a filesystem side effect, documents an argument it
-does not take, ships a proprietary identifier, imports a competing analytics
-stack, imports `factorlasso` at module scope, lets the release triple disagree,
-or declares a `qis` floor the suite never ran on.
+Component development runners belong in `privateassets/run/<subject>_local.py`.
+Each runner exposes `Locals` and `run_local(local=...)`; the `run/` directory has
+no `__init__.py` and is excluded from wheels and source distributions. Automated
+checks remain in `privateassets/tests/test_*.py`, and production modules never
+import development runners.
+
+Enforcement tests fail the suite if package imports have filesystem side effects,
+documentation drifts from signatures, proprietary identifiers or competing-stack
+imports enter the package, release metadata diverges, or automated tests,
+development runners, production modules and built distributions cross their
+declared boundaries.
 
 ## Status
 
-`0.6.1` runs from fund reporting to alpha in one call, and each stage is usable
+`0.6.2` runs from fund reporting to alpha in one call, and each stage is usable
 on its own. The reporting and factsheet layer is not in this release. See
 `CHANGELOG.md`.
 

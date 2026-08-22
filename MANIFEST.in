@@ -4,6 +4,7 @@ include CHANGELOG.md
 include CITATION.cff
 include LICENSE.txt
 recursive-include privateassets *.py
+prune privateassets/run
 prune data
 prune outputs
 prune projects

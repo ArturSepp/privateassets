@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.2 (2026-08-22)
+
+### Changed
+
+- Enforced the separation between automated pytest modules and source-only development runners.
+  Future component runners use `privateassets/run/<subject>_local.py` with `Locals` and
+  `run_local(local=...)`, and are excluded from built distributions.
+
 ## 0.6.1 (2026-07-28)
 
 **The ORCID iD in `CITATION.cff` was not the author's.** It read

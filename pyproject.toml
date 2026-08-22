@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "privateassets"
-version = "0.6.1"
+version = "0.6.2"
 description = "Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -47,6 +47,7 @@ Changelog = "https://github.com/ArturSepp/privateassets/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["privateassets*"]
+exclude = ["privateassets.run*"]
 
 [tool.pytest.ini_options]
 testpaths = ["privateassets"]
