@@ -59,6 +59,7 @@ jobs:
         done
 
     - name: Assert the core environment is factorlasso-free
+      shell: bash
       run: |
         uv run --no-sync python - <<'PY'
         import importlib.util

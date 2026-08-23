@@ -8,6 +8,7 @@
   top-level `tests/` without changing the `privateassets` import name or public API.
 - Adopted the shared uv-based CI matrix, built-wheel verification, and documentation
   build gate.
+- Made the factorlasso-free CI assertion use Bash explicitly so it runs on Windows.
 
 ### Removed
 
