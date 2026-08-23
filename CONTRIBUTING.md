@@ -53,10 +53,11 @@ where a question is really about the working paper, please say which section you
 ```bash
 git clone https://github.com/ArturSepp/privateassets.git
 cd privateassets
-pip install -e ".[dev]"              # core install: three test modules importorskip
-pip install -e ".[dev,factors]"      # the full suite, including the loading fit
-pytest                               # tests live in the top-level tests directory
-ruff check src/privateassets tests
+uv sync --locked --group test
+uv run --no-sync pytest                          # core: optional factor tests skip
+uv sync --locked --group test --extra factors
+uv run --no-sync pytest                          # full: includes the loading fit
+uv run --locked --only-group lint ruff check src/privateassets tests examples docs/conf.py
 ```
 
 Both installs must be green before a pull request. The core one is not optional: it is the install

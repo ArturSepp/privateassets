@@ -1,4 +1,8 @@
-name: ci
+# SHARED CI CORE v1.0 — T1 — synced 2026-08-23
+name: CI
+
+permissions:
+  contents: read
 
 on:
   push:
@@ -6,46 +10,159 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  MPLBACKEND: Agg
+
 jobs:
   test:
-    # Two installs, not one. The core install proves privateassets imports and runs
-    # without factorlasso, which is what its MIT licence claims. The factors install
-    # is the only one that reaches the loading fit, the end-to-end estimator and the
-    # resampling inference: with dev alone those three modules importorskip in full
-    # and the run is green on roughly two thirds of the suite.
-    name: py${{ matrix.python-version }} / ${{ matrix.extras }}
-    runs-on: ubuntu-latest
+    # Every cell first proves the MIT core install is factorlasso-free, then adds
+    # the factors extra and runs the paths that otherwise importorskip.
+    name: pytest (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
-        extras: ['dev', 'dev,factors']
+        include:
+          - {os: ubuntu-latest, python-version: "3.10"}
+          - {os: ubuntu-latest, python-version: "3.11"}
+          - {os: ubuntu-latest, python-version: "3.12", primary: true}
+          - {os: ubuntu-latest, python-version: "3.13"}
+          - {os: ubuntu-latest, python-version: "3.14"}
+          - {os: windows-latest, python-version: "3.12"}
+          - {os: macos-latest, python-version: "3.12"}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: install
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[${{ matrix.extras }}]"
-      - name: the factors job must actually have factorlasso
-        # Without this, a failed factorlasso install degrades silently back into the
-        # core run: the tests skip, and the job reports green having not run them.
-        if: contains(matrix.extras, 'factors')
-        run: python -c "import factorlasso; print(factorlasso.__name__, 'present')"
-      - name: the core job must not have factorlasso
-        # Guards the other direction: a transitive dependency pulling it in would
-        # make the core job silently duplicate the factors job.
-        if: ${{ !contains(matrix.extras, 'factors') }}
-        run: |
-          python - <<'PY'
-          import importlib.util, sys
-          if importlib.util.find_spec('factorlasso') is not None:
-              sys.exit('factorlasso present in the core install: something pulls it in transitively')
-          print('core install is factorlasso-free')
-          PY
-      - name: lint
-        run: ruff check src/privateassets tests
-      - name: test
-        run: pytest -q
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Install uv and Python ${{ matrix.python-version }}
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Sync the core test environment
+      # Primary cell installs uv.lock exactly; floating cells test today's resolution.
+      # Retried because observed failures here are transport failures, not test failures.
+      shell: bash
+      run: |
+        sync_cmd=(uv sync --group test ${{ matrix.primary && '--locked' || '--upgrade' }})
+        for attempt in 1 2 3; do
+          if "${sync_cmd[@]}"; then exit 0; fi
+          if [ "$attempt" -eq 3 ]; then echo "::error::uv sync failed after 3 attempts"; exit 1; fi
+          delay=$((attempt * 30 - 15))
+          echo "::warning::uv sync attempt $attempt failed; retrying in ${delay}s"
+          sleep "$delay"
+        done
+
+    - name: Assert the core environment is factorlasso-free
+      run: |
+        uv run --no-sync python - <<'PY'
+        import importlib.util
+
+        assert importlib.util.find_spec('factorlasso') is None, (
+            'factorlasso present in the core install: something pulls it in transitively'
+        )
+        print('core install is factorlasso-free')
+        PY
+
+    - name: Run core tests
+      run: uv run --no-sync pytest -q
+
+    - name: Sync the factors test environment
+      shell: bash
+      run: |
+        sync_cmd=(uv sync --group test --extra factors ${{ matrix.primary && '--locked' || '--upgrade' }})
+        for attempt in 1 2 3; do
+          if "${sync_cmd[@]}"; then exit 0; fi
+          if [ "$attempt" -eq 3 ]; then echo "::error::uv sync failed after 3 attempts"; exit 1; fi
+          delay=$((attempt * 30 - 15))
+          echo "::warning::uv sync attempt $attempt failed; retrying in ${delay}s"
+          sleep "$delay"
+        done
+
+    - name: Assert the factors environment has factorlasso
+      run: uv run --no-sync python -c "import factorlasso; print(factorlasso.__name__, 'present')"
+
+    - name: Run factors tests
+      run: uv run --no-sync pytest -q
+
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        python-version: "3.12"
+
+    - name: Check lint
+      run: uv run --locked --only-group lint ruff check src/privateassets tests examples docs/conf.py
+
+  wheel:
+    name: built wheel (core install)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        python-version: "3.12"
+
+    - name: Build the wheel from the source distribution
+      run: |
+        uv build --sdist --clear --out-dir dist
+        uv build --wheel dist/*.tar.gz --out-dir dist
+
+    - name: Assert wheel contents
+      run: |
+        python - <<'PY'
+        import glob
+        import zipfile
+
+        wheels = glob.glob('dist/*.whl')
+        assert len(wheels) == 1, f'expected exactly one wheel, found: {wheels}'
+        wheel = wheels[0]
+        with zipfile.ZipFile(wheel) as archive:
+            names = archive.namelist()
+
+        required = {
+            'privateassets/__init__.py',
+            'privateassets/matf/__init__.py',
+            'privateassets/matf/_pme.py',
+        }
+        forbidden = [
+            name for name in names
+            if name.startswith(('tests/', 'examples/'))
+            or '/tests/' in name
+            or '/run/' in name
+            or name.endswith(('.pyc', '.pyo'))
+            or '__pycache__/' in name
+        ]
+        assert required <= set(names), f'{wheel} is missing: {sorted(required - set(names))}'
+        assert not forbidden, f'{wheel} leaks development content: {forbidden}'
+        print(f'{wheel}: core package present; development content absent')
+        PY
+
+    - name: Install the wheel into a clean environment
+      run: |
+        uv venv --python 3.12 "$RUNNER_TEMP/privateassets-wheel"
+        uv pip install --python "$RUNNER_TEMP/privateassets-wheel/bin/python" "$(ls dist/*.whl)"
+
+    - name: Exercise the installed wheel from outside the checkout
+      working-directory: ${{ runner.temp }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/wheelcheck"
+        cp "$GITHUB_WORKSPACE/examples/first_success.py" "$RUNNER_TEMP/wheelcheck/first_success.py"
+        cd "$RUNNER_TEMP/wheelcheck"
+        "$RUNNER_TEMP/privateassets-wheel/bin/python" first_success.py
+        uv pip check --python "$RUNNER_TEMP/privateassets-wheel/bin/python"
+        "$RUNNER_TEMP/privateassets-wheel/bin/python" -c "from pathlib import Path; import privateassets as package; checkout = Path(r'${{ github.workspace }}').resolve(); package_path = Path(package.__file__).resolve(); assert not package_path.is_relative_to(checkout), (checkout, package_path); print(f'wheel_import={package_path}')"

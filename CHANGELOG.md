@@ -6,6 +6,13 @@
 
 - Moved the installable package to `src/privateassets/` and the automated suite to
   top-level `tests/` without changing the `privateassets` import name or public API.
+- Adopted the shared uv-based CI matrix, built-wheel verification, and documentation
+  build gate.
+
+### Removed
+
+- Retired the contributor-only `dev` extra. Use the `test` and `lint` dependency
+  groups instead; user-facing optional features remain extras.
 
 ## 0.6.2 (2026-08-22)
 

@@ -5,6 +5,7 @@ include CITATION.cff
 include LICENSE.txt
 recursive-include src/privateassets *.py
 recursive-include tests *.py
+recursive-include examples *.py
 prune src/privateassets/run
 prune data
 prune outputs

@@ -23,6 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Office/Business :: Financial :: Investment",
 ]
 dependencies = [
@@ -38,7 +40,11 @@ dependencies = [
 factors = ["factorlasso>=0.10.0"]
 excel = ["openpyxl>=3.1"]
 plot = ["matplotlib>=3.8"]
-dev = ["pytest>=8.0", "ruff>=0.6", "openpyxl>=3.1"]
+docs = ["sphinx>=8.0"]
+
+[dependency-groups]
+test = ["pytest>=8.0", "openpyxl>=3.1"]
+lint = ["ruff>=0.6"]
 
 [project.urls]
 Homepage = "https://github.com/ArturSepp/privateassets"
@@ -62,4 +68,4 @@ line-length = 110
 [tool.ruff.lint]
 # "I" is not selected anywhere in this stack: the import grouping convention puts
 # the scientific stack before the project packages, which isort reorders.
-select = ["E", "F", "W", "B"]
+select = ["E", "F", "W"]

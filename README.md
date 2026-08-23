@@ -1,15 +1,14 @@
 # privateassets
 
+[![PyPI](https://img.shields.io/pypi/v/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
+[![Python](https://img.shields.io/pypi/pyversions/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
+[![License](https://img.shields.io/github/license/ArturSepp/PrivateAssets.svg?style=flat-square)](LICENSE.txt)
+[![CI](https://github.com/ArturSepp/PrivateAssets/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ArturSepp/PrivateAssets/actions/workflows/ci.yml)
+[![Downloads](https://static.pepy.tech/badge/privateassets)](https://pepy.tech/project/privateassets)
+
 **Multi-factor, money-weighted PME for private-asset cash flows — risk-adjusted
 alpha and systematic factor exposures estimated directly from fund reporting,
 from NAVs and cash flows to alpha in one call**
-
-[![PyPI](https://img.shields.io/pypi/v/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
-[![Python](https://img.shields.io/pypi/pyversions/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
-[![CI](https://github.com/ArturSepp/privateassets/actions/workflows/ci.yml/badge.svg)](https://github.com/ArturSepp/privateassets/actions)
-[![Downloads](https://static.pepy.tech/badge/privateassets)](https://pepy.tech/project/privateassets)
-[![Monthly](https://static.pepy.tech/badge/privateassets/month)](https://pepy.tech/project/privateassets)
 
 ---
 
@@ -306,8 +305,10 @@ licensed and read from a path you supply. See `DATA_README.md`.
 ## Tests
 
 ```bash
-pip install -e ".[dev]"
-pytest
+uv sync --locked --group test
+uv run --no-sync pytest
+uv sync --locked --group test --extra factors
+uv run --no-sync pytest
 ```
 
 177 tests, no network and no data files. `tests/synthetic_data.py`

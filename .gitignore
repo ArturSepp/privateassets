@@ -14,6 +14,7 @@ __pycache__/
 venv/
 build/
 dist/
+/docs/_build/
 .ipynb_checkpoints/
 .pytest_cache/
 .ruff_cache/
