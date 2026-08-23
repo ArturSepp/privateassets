@@ -8,7 +8,7 @@ import pytest
 # qis / project
 import qis
 from privateassets.matf import BetaBootstrap, bootstrap_factor_betas
-from privateassets.tests.synthetic_data import make_factor_levels
+from tests.synthetic_data import make_factor_levels
 
 pytest.importorskip('factorlasso', reason='resampling refits need the [factors] extra')
 

@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 # qis / project
 from privateassets.matf import MatfResult, SignConstraint, estimate_matf_alpha
-from privateassets.tests.synthetic_data import (FACTOR_NAMES, make_cash_flows,
+from tests.synthetic_data import (FACTOR_NAMES, make_cash_flows,
                                                 make_factor_driven_panel, make_factor_levels,
                                                 make_rf_quarterly)
 

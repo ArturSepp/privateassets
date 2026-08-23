@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Moved the installable package to `src/privateassets/` and the automated suite to
+  top-level `tests/` without changing the `privateassets` import name or public API.
+
 ## 0.6.2 (2026-08-22)
 
 ### Changed

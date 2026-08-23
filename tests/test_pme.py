@@ -15,7 +15,7 @@ from privateassets.matf import (
     vintage_direct_alpha,
     xirr,
 )
-from privateassets.tests.synthetic_data import make_cash_flows
+from tests.synthetic_data import make_cash_flows
 
 
 def test_xirr_recovers_a_known_rate():

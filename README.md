@@ -310,7 +310,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-177 tests, no network and no data files. `privateassets/tests/synthetic_data.py`
+177 tests, no network and no data files. `tests/synthetic_data.py`
 draws a seeded panel carrying the defects real panels carry: irregular cash-flow
 dates, a J-curve, unrealised residual NAVs, and a factor panel that starts after
 the first fund does.
@@ -318,10 +318,10 @@ the first fund does.
 Tests needing the `[factors]` extra skip rather than fail, so a core install
 stays green.
 
-Component development runners belong in `privateassets/run/<subject>_local.py`.
+Component development runners belong in `src/privateassets/run/<subject>_local.py`.
 Each runner exposes `Locals` and `run_local(local=...)`; the `run/` directory has
 no `__init__.py` and is excluded from wheels and source distributions. Automated
-checks remain in `privateassets/tests/test_*.py`, and production modules never
+checks remain in `tests/test_*.py`, and production modules never
 import development runners.
 
 Enforcement tests fail the suite if package imports have filesystem side effects,

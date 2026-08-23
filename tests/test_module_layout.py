@@ -7,9 +7,9 @@ from pathlib import Path
 # qis / project
 import pytest
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-REPOSITORY_ROOT = PACKAGE_ROOT.parent
-TESTS_ROOT = PACKAGE_ROOT / "tests"
+TESTS_ROOT = Path(__file__).resolve().parent
+REPOSITORY_ROOT = TESTS_ROOT.parent
+PACKAGE_ROOT = REPOSITORY_ROOT / "src" / "privateassets"
 RUN_ROOT = PACKAGE_ROOT / "run"
 LEGACY_DISPATCHERS = {
     "LocalTest",
@@ -162,5 +162,6 @@ def test_development_runners_are_excluded_from_distributions() -> None:
         pytest.skip("distribution configuration is absent outside a source checkout")
     pyproject = pyproject_path.read_text(encoding="utf-8")
     manifest = manifest_path.read_text(encoding="utf-8")
+    assert 'where = ["src"]' in pyproject
     assert '"privateassets.run*"' in pyproject
-    assert "prune privateassets/run" in manifest
+    assert "prune src/privateassets/run" in manifest

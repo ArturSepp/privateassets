@@ -12,7 +12,7 @@ from privateassets.matf import (
     fit_factor_betas,
     matf_deflator,
 )
-from privateassets.tests.synthetic_data import (FACTOR_NAMES, make_collinear_factor_panel,
+from tests.synthetic_data import (FACTOR_NAMES, make_collinear_factor_panel,
                                                make_factor_levels)
 
 factorlasso = pytest.importorskip('factorlasso',

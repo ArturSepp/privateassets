@@ -18,7 +18,7 @@ from privateassets.matf import (
     kn16_sdf_params,
     kn24_benchmark_deflator,
 )
-from privateassets.tests.synthetic_data import make_factor_levels, make_rf_quarterly
+from tests.synthetic_data import make_factor_levels, make_rf_quarterly
 
 RF_SIMPLE_QUARTERLY = 0.0125  # 5% a year, large enough that a double subtraction shows
 

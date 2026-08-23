@@ -3,8 +3,9 @@ include DATA_README.md
 include CHANGELOG.md
 include CITATION.cff
 include LICENSE.txt
-recursive-include privateassets *.py
-prune privateassets/run
+recursive-include src/privateassets *.py
+recursive-include tests *.py
+prune src/privateassets/run
 prune data
 prune outputs
 prune projects

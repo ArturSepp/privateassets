@@ -41,7 +41,7 @@ makes an MIT install carry GPL-3 obligations, and will be declined.
 Open an issue using the bug report template. A report needs the `privateassets` version, your
 Python version, whether the `factors` extra is installed, a minimal self-contained reproducer, and
 the full traceback or the incorrect numbers. Cash-flow data is usually confidential — please use
-`privateassets.tests.synthetic_data`, which generates panels with the defects real ones carry.
+`tests.synthetic_data`, which generates panels with the defects real ones carry.
 
 ## Asking a question
 
@@ -55,8 +55,8 @@ git clone https://github.com/ArturSepp/privateassets.git
 cd privateassets
 pip install -e ".[dev]"              # core install: three test modules importorskip
 pip install -e ".[dev,factors]"      # the full suite, including the loading fit
-pytest                               # tests live inside the package
-ruff check privateassets
+pytest                               # tests live in the top-level tests directory
+ruff check src/privateassets tests
 ```
 
 Both installs must be green before a pull request. The core one is not optional: it is the install

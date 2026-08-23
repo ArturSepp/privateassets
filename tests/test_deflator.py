@@ -12,7 +12,7 @@ from privateassets.matf import (
     matf_deflator,
     rolling_factor_covar,
 )
-from privateassets.tests.synthetic_data import make_factor_levels, make_rf_quarterly
+from tests.synthetic_data import make_factor_levels, make_rf_quarterly
 
 
 def _panel():

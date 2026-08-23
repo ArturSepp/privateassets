@@ -45,12 +45,16 @@ Homepage = "https://github.com/ArturSepp/privateassets"
 Issues = "https://github.com/ArturSepp/privateassets/issues"
 Changelog = "https://github.com/ArturSepp/privateassets/blob/main/CHANGELOG.md"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["privateassets*"]
 exclude = ["privateassets.run*"]
 
 [tool.pytest.ini_options]
-testpaths = ["privateassets"]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 110

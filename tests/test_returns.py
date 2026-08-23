@@ -17,7 +17,7 @@ from privateassets.matf import (
     pool_vintage_returns,
     split_by_reporting_frequency,
 )
-from privateassets.tests.synthetic_data import make_cash_flows
+from tests.synthetic_data import make_cash_flows
 
 
 def _fund(label, nav_by_date, flows=()):

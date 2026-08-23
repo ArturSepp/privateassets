@@ -46,6 +46,6 @@ jobs:
           print('core install is factorlasso-free')
           PY
       - name: lint
-        run: ruff check privateassets
+        run: ruff check src/privateassets tests
       - name: test
         run: pytest -q

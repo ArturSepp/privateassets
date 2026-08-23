@@ -14,7 +14,7 @@ from privateassets.matf import (
     panel_ar1_neg_log_likelihood,
     simulate_panel_ar1,
 )
-from privateassets.tests.synthetic_data import make_ar1_panel
+from tests.synthetic_data import make_ar1_panel
 
 
 def test_panel_mle_is_consistent_on_a_long_panel():

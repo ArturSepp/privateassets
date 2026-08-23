@@ -20,6 +20,7 @@ import privateassets
 import privateassets.matf as matf
 
 PACKAGE_ROOT = Path(privateassets.__file__).parent
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 # Identifiers that must never appear in the published package. Client and vendor
 # names, the internal repository the estimator was extracted from, and the
@@ -44,7 +45,7 @@ def _shipped_docs():
     Scanned because a planning or audit document that *describes* a leak
     reproduces it verbatim, and prose is not covered by the source sweep.
     """
-    repo_root = PACKAGE_ROOT.parent
+    repo_root = REPOSITORY_ROOT
     return [p for p in repo_root.glob('*.md')] + [p for p in repo_root.glob('papers/**/*.md')]
 
 
@@ -219,7 +220,7 @@ def test_the_release_triple_agrees():
     defect, not a typo: it breaks the traceability from a number in a manuscript
     back to the code that produced it.
     """
-    repo_root = PACKAGE_ROOT.parent
+    repo_root = REPOSITORY_ROOT
     pyproject = repo_root / 'pyproject.toml'
     citation = repo_root / 'CITATION.cff'
     if not (pyproject.exists() and citation.exists()):
@@ -242,7 +243,7 @@ def test_the_citation_date_is_a_date():
     A bare year passes a human's glance and sorts as nothing wherever the field is
     read as a date, Zenodo included.
     """
-    citation = PACKAGE_ROOT.parent / 'CITATION.cff'
+    citation = REPOSITORY_ROOT / 'CITATION.cff'
     if not citation.exists():
         pytest.skip('not a source checkout')
     match = re.search(r'^date-released:\s*(\S+)', citation.read_text(encoding='utf-8'),
@@ -261,7 +262,7 @@ def test_the_citation_orcid_is_the_authors():
     the release to a stranger and the author's own profile never shows it. Nothing
     in this repository would have caught it: the iD was a string no test read.
     """
-    citation = PACKAGE_ROOT.parent / 'CITATION.cff'
+    citation = REPOSITORY_ROOT / 'CITATION.cff'
     if not citation.exists():
         pytest.skip('not a source checkout')
     found = re.findall(r'^\s+orcid:\s*(\S+)', citation.read_text(encoding='utf-8'),
@@ -275,7 +276,7 @@ def test_the_qis_floor_is_at_least_the_version_under_test():
     A floor that lags the installed version lets a downstream install resolve a
     ``qis`` these tests never exercised.
     """
-    repo_root = PACKAGE_ROOT.parent
+    repo_root = REPOSITORY_ROOT
     pyproject = repo_root / 'pyproject.toml'
     if not pyproject.exists():
         pytest.skip('not a source checkout')
