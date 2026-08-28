@@ -1,14 +1,24 @@
 # privateassets
 
+**Multi-factor, money-weighted PME for private-asset cash flows — risk-adjusted alpha and
+systematic factor exposures estimated directly from fund reporting, from NAVs and cash flows to
+alpha in one call.**
+
+You supply fund cash flows and NAVs together with benchmark levels for classical PME, or factor
+index levels and the matching risk-free-rate series for MATF estimation. No fund records, market
+data, or licensed datasets ship with the package.
+
+**Install:** `pip install privateassets` · **Import:** `privateassets` · **Status:** Alpha
+
 [![PyPI](https://img.shields.io/pypi/v/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
 [![Python](https://img.shields.io/pypi/pyversions/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
-[![License](https://img.shields.io/github/license/ArturSepp/PrivateAssets.svg?style=flat-square)](LICENSE.txt)
-[![CI](https://github.com/ArturSepp/PrivateAssets/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ArturSepp/PrivateAssets/actions/workflows/ci.yml)
+[![CI](https://github.com/ArturSepp/privateassets/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ArturSepp/privateassets/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/ArturSepp/privateassets.svg?style=flat-square)](LICENSE.txt)
 [![Downloads](https://static.pepy.tech/badge/privateassets)](https://pepy.tech/project/privateassets)
+[![Monthly](https://static.pepy.tech/badge/privateassets/month)](https://pepy.tech/project/privateassets)
 
-**Multi-factor, money-weighted PME for private-asset cash flows — risk-adjusted
-alpha and systematic factor exposures estimated directly from fund reporting,
-from NAVs and cash flows to alpha in one call**
+**Documentation:** [user guide](https://github.com/ArturSepp/privateassets/blob/main/docs/index.rst) ·
+[offline first success](https://github.com/ArturSepp/privateassets/blob/main/examples/first_success.py)
 
 ---
 
@@ -83,7 +93,24 @@ Sign-constrained shrinkage betas need the `factors` extra:
 pip install "privateassets[factors]"
 ```
 
-## Use
+## Five-minute quickstart
+
+The repository's deterministic example uses only core dependencies and synthetic values. From a
+source checkout (the `examples/` directory is not included in the wheel), run:
+
+```console
+python examples/first_success.py
+```
+
+Expected evidence for this release:
+
+```text
+privateassets 0.6.2: core PME calculation succeeded
+```
+
+See [`examples/first_success.py`](examples/first_success.py) for the complete inputs and call.
+
+## Core workflows
 
 Classical single-benchmark measures take a tidy cash-flow frame and a benchmark
 index level series:
@@ -297,10 +324,21 @@ work combining the two takes on GPL-3 obligations. Installing the `factors` extr
 is what creates that combination. The core PME and deflator paths do not import
 it.
 
+## Ecosystem fit
+
+`privateassets` uses [`qis`](https://github.com/ArturSepp/QuantInvestStrats) for time-series
+analytics and resampling. The optional `factors` extra adds
+[`factorlasso`](https://github.com/ArturSepp/factorlasso) for sign-constrained shrinkage betas.
+[`optimalportfolios`](https://github.com/ArturSepp/OptimalPortfolios) is a sibling for portfolio
+construction, not a dependency. The [ArturSepp profile](https://github.com/ArturSepp)
+is the canonical ten-package catalogue.
+
 ## Data
 
-No data ships with this repository, and none may be added. Every input is
-licensed and read from a path you supply. See `DATA_README.md`.
+No data ships with this repository, and none may be added. Every input is licensed and read from a
+path you supply. Fund-level analysis requires user-supplied cash flows and NAVs; classical PME also
+needs benchmark levels, while MATF estimation needs factor levels and a matching risk-free-rate
+series. See [`DATA_README.md`](DATA_README.md).
 
 ## Tests
 
@@ -311,10 +349,9 @@ uv sync --locked --group test --extra factors
 uv run --no-sync pytest
 ```
 
-177 tests, no network and no data files. `tests/synthetic_data.py`
-draws a seeded panel carrying the defects real panels carry: irregular cash-flow
-dates, a J-curve, unrealised residual NAVs, and a factor panel that starts after
-the first fund does.
+The suite uses no network or data files. `tests/synthetic_data.py` draws a seeded panel carrying
+the defects real panels carry: irregular cash-flow dates, a J-curve, unrealised residual NAVs, and
+a factor panel that starts after the first fund does.
 
 Tests needing the `[factors]` extra skip rather than fail, so a core install
 stays green.
@@ -341,6 +378,28 @@ Two caveats travel with every number and are recorded in `provenance`: the
 loadings are in-sample, and the smoothing coefficient is attenuated by
 measurement noise in the J-curve period even after bias correction.
 
+## Feedback & contributing
+
+- [Report a reproducible bug](https://github.com/ArturSepp/privateassets/issues/new?template=bug_report.yml), using synthetic or anonymised inputs and including the package version, Python/platform, and expected versus actual result.
+- [Request a feature](https://github.com/ArturSepp/privateassets/issues/new?template=feature_request.yml), explaining which fund-reporting convention or benchmark input is blocking adoption, the current workaround, and the smallest useful API.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) for the public-data boundary, development commands, numerical-change rules, and pull-request guidance.
+
 ## Citation
 
-See `CITATION.cff`.
+Machine-readable metadata is available in [`CITATION.cff`](CITATION.cff). A copyable software
+citation is:
+
+```bibtex
+@software{sepp2026privateassets,
+  author = {Sepp, Artur},
+  title = {privateassets: Multi-factor Money-weighted PME for Private-asset Cash Flows},
+  year = {2026},
+  version = {0.6.2},
+  url = {https://github.com/ArturSepp/privateassets}
+}
+```
+
+## License
+
+This project is licensed under the MIT License; see [`LICENSE.txt`](LICENSE.txt). The optional GPL-3
+combination created by installing `privateassets[factors]` is described under [Dependencies](#dependencies).
