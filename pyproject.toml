@@ -48,6 +48,7 @@ lint = ["ruff>=0.6"]
 
 [project.urls]
 Homepage = "https://github.com/ArturSepp/privateassets"
+Documentation = "https://privateassets.readthedocs.io"
 Issues = "https://github.com/ArturSepp/privateassets/issues"
 Changelog = "https://github.com/ArturSepp/privateassets/blob/main/CHANGELOG.md"
 
