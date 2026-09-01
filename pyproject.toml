@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "privateassets"
 version = "0.6.2"
-description = "Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures."
+description = "Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Office/Business :: Financial :: Investment",
 ]
 dependencies = [
-    "numpy>=1.26",
+    "numpy>=2.0",
     "pandas>=2.2",
     "scipy>=1.11",
     "qis>=5.2.1",
@@ -49,6 +49,7 @@ lint = ["ruff>=0.6"]
 [project.urls]
 Homepage = "https://github.com/ArturSepp/privateassets"
 Documentation = "https://privateassets.readthedocs.io"
+Repository = "https://github.com/ArturSepp/privateassets"
 Issues = "https://github.com/ArturSepp/privateassets/issues"
 Changelog = "https://github.com/ArturSepp/privateassets/blob/main/CHANGELOG.md"
 
@@ -70,3 +71,29 @@ line-length = 110
 # "I" is not selected anywhere in this stack: the import grouping convention puts
 # the scientific stack before the project packages, which isort reorders.
 select = ["E", "F", "W"]
+extend-select = ["TID251", "TID253", "ICN"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# A1: privateassets depends on qis and optionally factorlasso, and on nothing else in the stack.
+"optimalportfolios".msg = "A1: subject packages never import each other."
+"trendfollowing".msg = "A1: subject packages never import each other."
+"stochvolmodels".msg = "A1: subject packages never import each other."
+"goal_based_allocation".msg = "A1: subject packages never import each other."
+"vanilla_option_pricers".msg = "A1: subject packages never import each other."
+
+[tool.ruff.lint.flake8-tidy-imports]
+# A3: optional libraries stay behind guarded local imports, never package import time.
+banned-module-level-imports = [
+    "yfinance",
+    "pandas_datareader",
+    "pybloqs",
+    "plotly",
+    "pyarrow",
+    "psycopg2",
+    "sqlalchemy",
+]
+
+[tool.ruff.lint.flake8-import-conventions.aliases]
+# This replaces Ruff's default alias map; only numpy and pandas use house aliases.
+numpy = "np"
+pandas = "pd"

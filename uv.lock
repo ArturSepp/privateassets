@@ -1879,7 +1879,7 @@ test = [
 requires-dist = [
     { name = "factorlasso", marker = "extra == 'factors'", specifier = ">=0.10.0" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.8" },
-    { name = "numpy", specifier = ">=1.26" },
+    { name = "numpy", specifier = ">=2.0" },
     { name = "openpyxl", marker = "extra == 'excel'", specifier = ">=3.1" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "qis", specifier = ">=5.2.1" },

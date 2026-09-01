@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Raised the minimum supported NumPy version from 1.26 to 2.0.
 - Moved the installable package to `src/privateassets/` and the automated suite to
   top-level `tests/` without changing the `privateassets` import name or public API.
 - Adopted the shared uv-based CI matrix, built-wheel verification, and documentation
