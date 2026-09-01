@@ -13,6 +13,7 @@ data, or licensed datasets ship with the package.
 [![PyPI](https://img.shields.io/pypi/v/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
 [![Python](https://img.shields.io/pypi/pyversions/privateassets?style=flat-square)](https://pypi.org/project/privateassets/)
 [![CI](https://github.com/ArturSepp/privateassets/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ArturSepp/privateassets/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/privateassets/badge/?version=latest)](https://privateassets.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/github/license/ArturSepp/privateassets.svg?style=flat-square)](LICENSE.txt)
 [![Downloads](https://static.pepy.tech/badge/privateassets)](https://pepy.tech/project/privateassets)
 [![Monthly](https://static.pepy.tech/badge/privateassets/month)](https://pepy.tech/project/privateassets)
