@@ -1,8 +1,6 @@
 # privateassets
 
-**Multi-factor, money-weighted PME for private-asset cash flows — risk-adjusted alpha and
-systematic factor exposures estimated directly from fund reporting, from NAVs and cash flows to
-alpha in one call.**
+**Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures**
 
 You supply fund cash flows and NAVs together with benchmark levels for classical PME, or factor
 index levels and the matching risk-free-rate series for MATF estimation. No fund records, market
@@ -65,7 +63,7 @@ sign-constrained shrinkage betas to
 [`factorlasso`](https://pypi.org/project/factorlasso/) through the optional
 `[factors]` extra.
 
-### When to use it — and when not
+## When to use it — and when not
 
 Use `privateassets` to estimate risk-adjusted alpha and systematic factor
 exposures of private-equity and private-credit funds from their cash flows and
@@ -82,7 +80,7 @@ caveats travel with every number in `provenance`.
 
 ---
 
-## Install
+## Installation
 
 ```bash
 pip install privateassets
@@ -325,7 +323,7 @@ work combining the two takes on GPL-3 obligations. Installing the `factors` extr
 is what creates that combination. The core PME and deflator paths do not import
 it.
 
-## Ecosystem fit
+## Ecosystem
 
 `privateassets` uses [`qis`](https://github.com/ArturSepp/QuantInvestStrats) for time-series
 analytics and resampling. The optional `factors` extra adds
