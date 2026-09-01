@@ -1,3 +1,13 @@
+## Python environment (mandatory)
+
+- Never create, use, or install packages into a Python virtual environment anywhere under `C:\Users\artur\OneDrive`.
+- Keep this repository's environment outside OneDrive at `C:\Python\PrivateAssets312`.
+- Use `C:\Python\PrivateAssets312\Scripts\python.exe` for Python, tests, linters, and package installation.
+- If it is missing, create it with `py -3.12 -m venv C:\Python\PrivateAssets312`.
+- Never run plain `uv sync` or plain `uv run` from this checkout: uv otherwise creates `<repo>\.venv` even when uv was launched through a Python executable under `C:\Python`.
+- If a uv project operation is required, first set `UV_PROJECT_ENVIRONMENT=C:\Python\PrivateAssets312`; for pip-style operations prefer `uv pip ... --python C:\Python\PrivateAssets312\Scripts\python.exe`.
+- If any OneDrive-local environment already exists, do not use it; report it for removal.
+
 # privateassets — repository conventions
 
 `privateassets` is a public library for private-asset return analytics. It is a
@@ -158,11 +168,3 @@ names the file and the stage. A stage is complete when its stated verification c
 its out-of-scope list is binding.
 
 <!-- ===== SHARED AGENT CORE — end ===== -->
-
-## Python environment
-
-- Keep this repository's Python environment outside OneDrive at `C:\Python\PrivateAssets312`.
-- Never create, use, or install packages into a repository-local `.venv`.
-- Use `C:\Python\PrivateAssets312\Scripts\python.exe` for all Python commands.
-- Run tools through that interpreter, for example `C:\Python\PrivateAssets312\Scripts\python.exe -m pytest` and `C:\Python\PrivateAssets312\Scripts\python.exe -m pip`.
-- If the environment is missing, create it with `py -3.12 -m venv C:\Python\PrivateAssets312`; do not create `.venv` under the repository.
