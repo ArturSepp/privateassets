@@ -10,7 +10,7 @@ PROJECT_METADATA = tomllib.loads(
     (REPOSITORY_ROOT / 'pyproject.toml').read_text(encoding='utf-8')
 )['project']
 
-project = 'PrivateAssets'
+project = 'privateassets'
 author = 'Artur Sepp'
 copyright = '2026, Artur Sepp'
 release = PROJECT_METADATA['version']
@@ -21,8 +21,8 @@ extensions = [
 ]
 exclude_patterns = ['_build']
 autodoc_typehints = 'description'
-html_theme = 'alabaster'
-html_title = 'PrivateAssets documentation'
+html_theme = 'furo'
+html_title = 'privateassets - multi-factor PME for private assets'
 html_baseurl = 'https://privateassets.readthedocs.io/en/latest/'
 html_extra_path = ['robots.txt', 'sitemap.xml']
 
