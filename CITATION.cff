@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "privateassets: multi-factor money-weighted PME for private-asset cash flows"
+title: "privateassets: Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures"
 abstract: >-
   Estimates risk-adjusted alpha and systematic factor exposures directly from
   private-asset cash flows, generalising Direct Alpha, KS-PME and GPME from a
