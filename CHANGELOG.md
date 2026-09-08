@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-08
+
+### Added
+
+- Added explicit stack dependency and optional-import boundary checks, including
+  isolated maintainer adapters, plus a fresh Python 3.10 lowest-direct dependency CI lane.
+
+- Added tag-driven PyPI Trusted Publishing with release-identity and distribution
+  validation; creating a GitHub Release remains optional.
+
+- Added documentation guides for conventions and end-to-end workflows, plus a
+  lowest-dependency CI variant for the optional `factors` extra.
+
 ### Changed
 
 - Raised the minimum supported NumPy version from 1.26 to 2.0.
@@ -11,12 +24,20 @@
   build gate.
 - Made the factorlasso-free CI assertion use Bash explicitly so it runs on Windows.
 
+- Aligned package summaries, software citations, README navigation, and documentation
+  landing pages with the canonical package identity and Read the Docs documentation.
+
 ### Removed
 
 - Retired the contributor-only `dev` extra. Use the `test` and `lint` dependency
   groups instead; user-facing optional features remain extras.
 
-## 0.6.2 (2026-08-22)
+### Fixed
+
+- Raised the setuptools build requirement to 77.0.3 to support the declared
+  PEP 639 license metadata.
+
+## [0.6.2] - 2026-08-22
 
 ### Changed
 
@@ -24,7 +45,7 @@
   Future component runners use `privateassets/run/<subject>_local.py` with `Locals` and
   `run_local(local=...)`, and are excluded from built distributions.
 
-## 0.6.1 (2026-07-28)
+## [0.6.1] - 2026-07-28
 
 **The ORCID iD in `CITATION.cff` was not the author's.** It read
 0000-0003-4083-4183 from the first release to this one; the correct iD is
@@ -90,7 +111,7 @@ bounds checking off, so the out-of-bounds row was read rather than raising. A
 future release of this package that reaches for the AR path should not be able to
 resolve an older `qis`.
 
-## 0.6.0 (2026-07-26)
+## [0.6.0] - 2026-07-26
 
 The smoothing coefficient can now be bias-corrected, and the part of its bias
 that no correction reaches is separated out and measured.
@@ -145,7 +166,7 @@ and shipped there in `5.2.1` along with three silent defects found alongside it.
 This package uses a parametric simulation instead, which is the right method for
 a bias correction regardless.
 
-## 0.5.0 (2026-07-26)
+## [0.5.0] - 2026-07-26
 
 The estimator runs end to end in one call. `estimate_matf_alpha` composes
 reported returns, the smoothing coefficient, the loadings, the point-in-time
@@ -196,7 +217,7 @@ rather than printing it.
   `test_theta_is_attenuated_by_the_j_curve` pins the direction. Understating
   theta understates the volatility uplift `1 / (1 - theta)`.
 
-## 0.4.0 (2026-07-26)
+## [0.4.0] - 2026-07-26
 
 Closes the gap between raw fund reporting and the estimator: a fund publishes
 marks and cash flows, not returns. The reconstruction assumes **one panel, one
@@ -246,7 +267,7 @@ that violates it.
 
 - `rolling_ewma_quarterly_covar`, `build_rolling_sigma`, `DEFAULT_BURNIN_MONTHS`.
 
-## 0.3.0 (2026-07-26)
+## [0.3.0] - 2026-07-26
 
 **The two single-factor benchmarks were understating themselves by the risk-free
 rate, which overstated every alpha measured against them.** Both are corrected
@@ -307,7 +328,7 @@ regression values.
 - Failed resample fits are counted in `num_failed` rather than becoming NaN, so
   a degenerate draw cannot silently shrink the effective sample.
 
-## 0.2.0 (2026-07-26)
+## [0.2.0] - 2026-07-26
 
 **`factorlasso` shipped a breaking rename that silently disabled the estimator.**
 The extracted code called `LassoModelType.GROUP_LASSO_CLUSTERS`, which does not
@@ -357,7 +378,7 @@ package rather than inferred.
   is "cvxpy for sign-constrained ridge regression". It has been a `factorlasso`
   wrapper for some time.
 
-## 0.1.0 (2026-07-26)
+## [0.1.0] - 2026-07-26
 
 **The public surface is narrower than 0.0.1 advertised.** The estimation
 pipeline (`Cfg`, `run`, the shrinkage-beta fit, the bootstrap inference layer and

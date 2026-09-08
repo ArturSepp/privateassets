@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "privateassets"
-version = "0.6.2"
+version = "0.7.0"
 description = "Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -80,6 +80,8 @@ extend-select = ["TID251", "TID253", "ICN"]
 "stochvolmodels".msg = "A1: subject packages never import each other."
 "goal_based_allocation".msg = "A1: subject packages never import each other."
 "vanilla_option_pricers".msg = "A1: subject packages never import each other."
+"bbg_fetch".msg = "A1: privateassets has no declared dependency on bbg_fetch."
+"option_chain_analytics".msg = "A1: privateassets has no declared dependency on option_chain_analytics."
 
 [tool.ruff.lint.flake8-tidy-imports]
 # A3: optional libraries stay behind guarded local imports, never package import time.
