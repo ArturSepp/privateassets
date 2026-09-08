@@ -84,7 +84,7 @@ from a disclosure.
 <!-- ===== SHARED AGENT CORE (consumer variant) — begin =====
      Generated from SHARED_AGENT_CORE.md in the maintainer's project knowledge. Do not hand-edit
      between these markers — propose the change to the maintainer instead. Variants: builder
-     (qis) / consumer / standalone. Last synced 2026-08-09, agent core v1.4. -->
+     (qis) / consumer / standalone. Last synced 2026-09-08, agent core v1.5 -->
 
 ## Domain invariants
 

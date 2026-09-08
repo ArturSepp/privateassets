@@ -1,5 +1,6 @@
 """Sphinx configuration for the PrivateAssets documentation."""
 
+import os
 import sys
 from pathlib import Path
 import tomllib
@@ -23,8 +24,10 @@ exclude_patterns = ['_build']
 autodoc_typehints = 'description'
 html_theme = 'furo'
 html_title = 'privateassets - multi-factor PME for private assets'
-html_baseurl = 'https://privateassets.readthedocs.io/en/latest/'
-html_extra_path = ['robots.txt', 'sitemap.xml']
+html_baseurl = (
+    os.environ.get("READTHEDOCS_CANONICAL_URL")
+    or "https://privateassets.readthedocs.io/en/latest/"
+)
 
 GOOGLE_SITE_VERIFICATION = 'cddUZk3Gsd1MySw42Rwuq_rMzUDcMNkJWekObx-QS9Y'
 rst_prolog = f"""

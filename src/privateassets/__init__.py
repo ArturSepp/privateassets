@@ -10,6 +10,6 @@ which is a sibling rather than a parent.
 
 Importing this package has no side effects and reads nothing from disk.
 """
-__version__ = "0.6.2"
+__version__ = "0.7.0"
 
 __all__ = ['__version__']
