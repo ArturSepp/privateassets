@@ -39,3 +39,6 @@ dist/
 *.xlsx
 *.xls
 *.csv
+
+# Local agent roadmaps and working outputs
+/agents/

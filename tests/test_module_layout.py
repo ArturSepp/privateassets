@@ -11,6 +11,7 @@ TESTS_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = TESTS_ROOT.parent
 PACKAGE_ROOT = REPOSITORY_ROOT / "src" / "privateassets"
 RUN_ROOT = PACKAGE_ROOT / "run"
+EXAMPLES_ROOT = REPOSITORY_ROOT / "examples"
 LEGACY_DISPATCHERS = {
     "LocalTest",
     "LocalTests",
@@ -151,6 +152,38 @@ def test_production_modules_do_not_own_development_dispatchers() -> None:
             failures.append(f"{relative}: owns an executable development runner")
         if _imports_run(path):
             failures.append(f"{relative}: imports source-only run code")
+    assert not failures, failures
+
+
+def test_examples_use_the_shared_dispatcher_contract() -> None:
+    """require repository examples to use ``Locals`` and ``run_local(local=...)``."""
+    examples = sorted(EXAMPLES_ROOT.rglob("*.py"))
+    failures = []
+    for path in examples:
+        definitions = {
+            node.name: node
+            for node in _tree(path).body
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        if not RUNNER_DEFINITIONS <= definitions.keys():
+            failures.append(f"{path.name}: expected Locals plus run_local")
+            continue
+        if LEGACY_DISPATCHERS & definitions.keys():
+            failures.append(f"{path.name}: retains legacy dispatcher names")
+        dispatcher = definitions["run_local"]
+        args = dispatcher.args.args
+        annotation = args[0].annotation if args else None
+        if (
+            not args
+            or args[0].arg != "local"
+            or not isinstance(annotation, ast.Name)
+            or annotation.id != "Locals"
+        ):
+            failures.append(f"{path.name}: expected run_local(local: Locals)")
+        if not _main_calls_run_local_directly(path):
+            failures.append(f"{path.name}: main guard must contain only run_local(local=Locals.*)")
+
+    assert len(examples) == 1
     assert not failures, failures
 
 

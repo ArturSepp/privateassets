@@ -1,6 +1,8 @@
 """Exercise a minimal offline PME calculation using only core dependencies."""
 
 # packages
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 # qis / project
@@ -8,8 +10,17 @@ import privateassets
 from privateassets.matf import ks_pme
 
 
-def main() -> None:
-    """Run one finite core calculation without files, network, or optional extras."""
+class Locals(Enum):
+    """available local example workflows."""
+
+    CORE_PME = 1
+
+
+def run_local(local: Locals) -> None:
+    """run one finite core calculation without files, network, or optional extras."""
+    if local != Locals.CORE_PME:
+        raise ValueError(f"unsupported local case: {local}")
+
     dates = pd.Series(pd.to_datetime(['2020-01-01', '2021-01-01']))
     amounts = pd.Series([-100.0, 110.0])
     benchmark = pd.Series([100.0, 110.0], index=pd.DatetimeIndex(dates))
@@ -27,4 +38,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    run_local(local=Locals.CORE_PME)
