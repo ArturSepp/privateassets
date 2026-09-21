@@ -41,7 +41,8 @@
   "required_jobs": [
     "preflight",
     "ci",
-    "docs"
+    "docs",
+    "references"
   ],
   "workflow_inventory": {
     "ci": {
@@ -93,5 +94,7 @@
         "Check documentation links"
       ]
     }
-  }
+  },
+  "audit": false,
+  "consumers": []
 }
