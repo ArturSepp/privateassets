@@ -12,3 +12,6 @@ prune outputs
 prune projects
 global-exclude *.py[cod]
 global-exclude __pycache__
+
+prune papers
+prune agents

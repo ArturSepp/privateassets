@@ -59,6 +59,7 @@
       "lint": [
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
         "Install uv and Python",
+        "Check paper publication policy",
         "Check lint"
       ],
       "wheel": [
@@ -66,6 +67,7 @@
         "Install uv and Python",
         "Build the wheel from the source distribution",
         "Assert wheel contents",
+        "Exclude private workspaces from both distributions",
         "Install the wheel into a clean environment",
         "Exercise the installed wheel from outside the checkout"
       ],

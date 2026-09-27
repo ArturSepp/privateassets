@@ -55,13 +55,28 @@ downloaded. That module imports
 numpy and pandas only, never the library under test, and is frozen once goldens
 pin to it.
 
+## Paper workspace policy (PrivateAssets override)
+
+- Follow `papers/AGENTS.md` for the six-section layout. Every paper workspace is
+  entirely local and ignored, including summaries, replication code and tests.
+  Only the shared `papers/AGENTS.md` and `papers/README.md` remain tracked.
+- All paper input data stays ignored, preserving DATA_README.md. Do not move or
+  publish root `data/`, `projects/`, LP records or licensed-data estimates.
+- Paper-specific agent reports and prior-art audits belong in ignored
+  `papers/<paper_id>/agents/`, overriding the generated shared core's root-only
+  location. Repository-wide records remain in root `agents/`.
+- Paper tests belong in `replication/tests/`; existing package tests stay in
+  root `tests/`. Generated state belongs outside OneDrive and the checkout.
+- Run the publication checker against the actual Git index before committing;
+  its `--worktree` mode previews unstaged work. Verify both distribution archives.
+
 ## Layout
 
 ```
 src/privateassets/      PUBLIC package. Estimator core only.
   matf/                 the method: PME measures, deflator, panel MLE
 tests/                  pytest suite and the synthetic panel
-papers/                 PUBLIC. Publication tracks. No data, no LP results.
+papers/                 Local paper workspaces; only shared policy/index documents are tracked.
 data/                   PRIVATE, git-ignored. Licensed inputs.
 outputs/                git-ignored. Generated artifacts.
 projects/               PRIVATE, git-ignored. Mandate engagements.

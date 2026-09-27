@@ -100,6 +100,11 @@ jobs:
       with:
         python-version: "3.12"
 
+    - name: Check paper publication policy
+      run: |
+        python .github/scripts/check_paper_policy.py
+        python .github/scripts/paper_policy_test.py
+
     - name: Check lint
       run: uv run --locked --only-group lint ruff check src/privateassets tests examples docs/conf.py
 
@@ -149,6 +154,9 @@ jobs:
         assert not forbidden, f'{wheel} leaks development content: {forbidden}'
         print(f'{wheel}: core package present; development content absent')
         PY
+
+    - name: Exclude private workspaces from both distributions
+      run: python .github/scripts/check_paper_policy.py --artifacts dist
 
     - name: Install the wheel into a clean environment
       run: |
