@@ -46,7 +46,45 @@ def _shipped_docs():
     reproduces it verbatim, and prose is not covered by the source sweep.
     """
     repo_root = REPOSITORY_ROOT
-    return [p for p in repo_root.glob('*.md')] + [p for p in repo_root.glob('papers/**/*.md')]
+    if (repo_root / '.git').exists():
+        names = subprocess.check_output(
+            ['git', '-c', f'safe.directory={repo_root.as_posix()}', '-c', 'core.excludesFile=',
+             '-C', str(repo_root), 'ls-files', '--cached', '--others', '--exclude-standard',
+             '-z', '--', '*.md'],
+        ).decode('utf-8').split('\0')
+        return sorted({repo_root / name for name in names if name and
+                       (len(Path(name).parts) == 1 or Path(name).parts[0] == 'papers')
+                       and (repo_root / name).is_file()})
+    # Source archives have no Git metadata or private workspaces. Keep a fallback
+    # for exports without treating local ignored sections as publication inputs.
+    protected = {'drafts', 'private', 'agents', 'data', 'outputs', 'results'}
+    return list(repo_root.glob('*.md')) + [
+        path for path in repo_root.glob('papers/**/*.md')
+        if not protected.intersection(path.relative_to(repo_root).parts[2:-1])
+    ]
+
+
+def test_public_doc_scan_respects_ignored_paper_records(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ignored local reports stay local, while force-added reports remain visible."""
+    def git(*args: str) -> None:
+        subprocess.run(['git', '-c', f'safe.directory={tmp_path.as_posix()}',
+                        '-c', 'core.excludesFile=', '-C', str(tmp_path), *args],
+                       check=True, capture_output=True)
+
+    git('init', '-q')
+    (tmp_path / '.gitignore').write_text('/papers/**/agents/\n', encoding='utf-8')
+    public = tmp_path / 'papers' / 'example' / 'README.md'
+    report = public.parent / 'agents' / 'audit.md'
+    report.parent.mkdir(parents=True)
+    public.write_text('Public summary\n', encoding='utf-8')
+    report.write_text('Local audit fixture\n', encoding='utf-8')
+    git('add', '.')
+    monkeypatch.setattr(sys.modules[__name__], 'REPOSITORY_ROOT', tmp_path)
+    assert _shipped_docs() == [public]
+    git('add', '-f', 'papers/example/agents/audit.md')
+    assert set(_shipped_docs()) == {public, report}
 
 
 def test_all_advertised_names_exist():

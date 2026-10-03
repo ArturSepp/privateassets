@@ -42,3 +42,16 @@ dist/
 
 # Local agent roadmaps and working outputs
 /agents/
+
+# All paper workspaces are local; only the shared policy and index are tracked.
+/papers/*
+!/papers/AGENTS.md
+!/papers/README.md
+/papers/**/drafts/
+/papers/**/private/
+/papers/**/agents/
+/papers/**/paper/**
+/papers/**/presentations/**
+/papers/**/replication/data/
+/papers/**/replication/results/
+/papers/**/replication/outputs/

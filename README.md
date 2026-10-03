@@ -206,6 +206,13 @@ path you supply. Fund-level analysis requires user-supplied cash flows and NAVs;
 needs benchmark levels, while MATF estimation needs factor levels and a matching risk-free-rate
 series. See [`DATA_README.md`](DATA_README.md).
 
+## Paper workspaces
+
+The [paper index](papers/README.md) describes the local research workspaces and
+their six-section layout. All paper folders remain local and Git-ignored,
+including summaries, manuscripts, replication code, tests and data. Only the
+shared paper policy and index are tracked.
+
 ## Tests
 
 ```bash
