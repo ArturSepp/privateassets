@@ -1,3 +1,7 @@
+.. meta::
+   :description: API reference of privateassets: the public analytics surface of privateassets.matf,
+      with signatures and docstrings.
+
 API reference
 =============
 

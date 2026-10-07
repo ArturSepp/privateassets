@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added a meta description to every documentation page, so search results show a summary of
+  the page rather than text the search engine picks. No signature or computed value changes.
+
+### Fixed
+
+- Titled documentation pages other than the homepage `<page title> - privateassets`
+  instead of ending every title with the full site title, which search results cut off.
+
+- Made documentation pages built for the `stable` version name their `latest` address as
+  canonical, so search engines no longer see each page twice. Numbered versions keep their own
+  address, and the homepage names the site root rather than `index.html`. No signature or
+  computed value changes.
+
 ## [0.7.0] - 2026-09-08
 
 ### Added

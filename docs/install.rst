@@ -1,3 +1,7 @@
+.. meta::
+   :description: Install privateassets from PyPI, with the optional factors extra for the shrinkage
+      factor-loading estimator.
+
 Installation
 ============
 
