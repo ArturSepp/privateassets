@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added a meta description to every documentation page, so search results show a summary of
+  the page rather than text the search engine picks. No signature or computed value changes.
+
 ## [0.7.0] - 2026-09-08
 
 ### Added
