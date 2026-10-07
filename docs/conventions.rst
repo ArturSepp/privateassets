@@ -1,3 +1,7 @@
+.. meta::
+   :description: Conventions of privateassets: excess log factor returns, point-in-time covariance,
+      quarterly deflator units, ACT/365.25 day counts and one reporting frequency per panel.
+
 Conventions
 ===========
 
