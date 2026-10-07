@@ -1,3 +1,7 @@
+.. meta::
+   :description: A five-minute, offline privateassets quickstart: a deterministic PME calculation on
+      synthetic private-asset cash flows, with no files, network access or optional extras.
+
 Five-minute quickstart
 ======================
 

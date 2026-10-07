@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added a meta description to every documentation page, so search results show a summary of
+  the page rather than text the search engine picks. No signature or computed value changes.
+
 ### Fixed
 
 - Titled documentation pages other than the homepage `<page title> - privateassets`
