@@ -276,7 +276,7 @@ citation is:
   author = {Sepp, Artur},
   title = {privateassets: Multi-factor Money-weighted PME for Private-asset Cash Flows},
   year = {2026},
-  version = {0.7.0},
+  version = {0.7.1},
   url = {https://github.com/ArturSepp/privateassets}
 }
 ```

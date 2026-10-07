@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-07
+
 ### Added
 
 - Added a meta description to every documentation page, so search results show a summary of
