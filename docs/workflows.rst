@@ -1,3 +1,8 @@
+.. meta::
+   :description: Core privateassets workflows: KS-PME, Direct Alpha and vintage statistics, the
+      one-call multi-factor alpha estimator, NAV-implied returns, shrinkage factor loadings and the
+      multi-factor deflator.
+
 Core workflows
 ==============
 

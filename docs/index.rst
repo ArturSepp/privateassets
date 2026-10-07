@@ -1,3 +1,8 @@
+.. meta::
+   :description: Documentation for privateassets: a multi-factor money-weighted public market
+      equivalent (PME) for private-asset cash flows in Python, with risk-adjusted alpha and factor
+      exposures.
+
 privateassets
 =============
 
