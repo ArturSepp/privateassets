@@ -104,7 +104,7 @@ python examples/first_success.py
 Expected evidence for this release:
 
 ```text
-privateassets 0.6.2: core PME calculation succeeded
+privateassets 0.8.0: core PME calculation succeeded
 ```
 
 See the [docs quickstart](https://privateassets.readthedocs.io/en/latest/quickstart.html) for the complete inputs and call, included from [`examples/first_success.py`](examples/first_success.py).
@@ -112,6 +112,12 @@ See the [docs quickstart](https://privateassets.readthedocs.io/en/latest/quickst
 ## Core workflows
 
 See the [core workflows guide](https://privateassets.readthedocs.io/en/latest/workflows.html).
+
+Loading fits accept `ExpertPrior` to centre a selected factor on its weighted
+univariate regression and impose a sign-oriented uncertainty floor. The returned
+`PriorDiagnostics` makes that convention inspectable, and the loading bootstrap
+re-estimates it on each draw. This reproduces an expert loading rule; the floor
+does not establish that the multifactor exposure is well identified.
 
 ## Unsmoothing
 
@@ -243,7 +249,7 @@ declared boundaries.
 
 ## Status
 
-`0.6.2` runs from fund reporting to alpha in one call, and each stage is usable
+`0.8.0` runs from fund reporting to alpha in one call, and each stage is usable
 on its own. The reporting and factsheet layer is not in this release. See
 `CHANGELOG.md`.
 
@@ -276,7 +282,7 @@ citation is:
   author = {Sepp, Artur},
   title = {privateassets: Multi-factor Money-weighted PME for Private-asset Cash Flows},
   year = {2026},
-  version = {0.7.1},
+  version = {0.8.0},
   url = {https://github.com/ArturSepp/privateassets}
 }
 ```

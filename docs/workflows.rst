@@ -6,6 +6,11 @@
 Core workflows
 ==============
 
+*Author:* `Artur Sepp <https://github.com/ArturSepp>`_
+
+Software: `privateassets <https://github.com/ArturSepp/privateassets>`_;
+`citation metadata <https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff>`_.
+
 Classical single-benchmark measures take a tidy cash-flow frame and a benchmark
 index level series:
 
@@ -103,8 +108,8 @@ the same commitment and the pooled series is equal-commitment weighted. Pass
 the currency columns with ``scale=1.0`` to weight by capital instead. Column
 names are arguments, and nothing about a vendor's taxonomy is baked in.
 
-Factor loadings come from the shrinkage estimator. The panel is short and the
-factors are collinear, so an unconstrained least-squares beta is not usable:
+Factor loadings come from the shrinkage estimator. Shrinkage improves recovery
+on the package's short synthetic panels, including correlated factors:
 
 .. code-block:: python
 
@@ -120,6 +125,67 @@ factors are collinear, so an unconstrained least-squares beta is not usable:
 
 Needs the ``[factors]`` extra. The shrinkage target defaults to zero — a non-zero
 prior is an economic view, so it is yours to pass, not the library's to assume.
+
+Loadings with an expert prior
+------------------------------------------------------------
+
+``ExpertPrior`` exposes the production capital-market-assumptions prior convention
+through the optional ``factorlasso`` dependency:
+
+1. Regress the asset on one caller-selected factor with an intercept and the fit's
+   loss weights. Its OLS slope centres that factor's penalty; other centres are zero.
+2. Impose the sign-oriented magnitude floor
+   :math:`\max(0, |b_{OLS}| - n_{std} SE_{HAC})`, using a Bartlett HAC standard error.
+   The production settings are ``bound_n_std=1.0``, one lag for quarterly inputs,
+   and three lags for monthly inputs. A negative slope imposes an upper bound at
+   minus the floor.
+3. Apply the caller's sign declarations and retain ``reg_lambda=1e-5``. At this
+   penalty strength the centre has little weight and a positive floor can bind.
+
+This workflow fragment assumes aligned quarterly asset returns and excess factor
+returns with the named columns. Signs are caller policy, not package defaults:
+
+.. code-block:: python
+
+   from privateassets.matf import ExpertPrior, SignConstraint, fit_factor_betas
+
+   signs = {
+       'Equity': SignConstraint.POS, 'Rates': SignConstraint.POS,
+       'Credit': SignConstraint.POS, 'Carry': SignConstraint.POS,
+       'Private Equity': SignConstraint.POS, 'Rates Vol': SignConstraint.NEG,
+       'Inflation': SignConstraint.FREE, 'Commodities': SignConstraint.FREE,
+       'Fx': SignConstraint.FREE,
+   }
+   prior = ExpertPrior('Private Equity', bound_n_std=1.0, hac_lags=1)
+   fit = fit_factor_betas(quarterly_returns, quarterly_factor_returns,
+                          sign_constraints=signs, expert_prior=prior,
+                          prior_beta=None, span=None)
+   print(fit.prior)
+
+FREE maps to NaN in factorlasso, ZERO to zero. FREE supplies no explicit sign;
+the default automatic sign layer can still restrict the loading. A conflicting
+explicit sign takes precedence over the expert floor. Finite ``prior_beta``
+entries override centres; overriding the selected factor leaves that prior soft
+and suppresses its floor. Unavailable standard errors are NaN and unavailable
+observation counts are None. ``PriorDiagnostics.centre`` always refers to the
+raw OLS slope, including when an override changes the effective penalty centre.
+
+The floor is a univariate uncertainty statement, not identification of the
+multifactor loading or a confidence bound for it. Fitting remains in-sample.
+Pass the same prior to ``estimate_matf_alpha`` with ``fit_kwargs={'span': None}``
+and ``num_bootstrap`` to include per-draw re-estimation of the centre and floor.
+The bootstrap defaults to equal weights; using an explicit common span keeps its
+point fit aligned with the original fit. This interval is conditional on the
+supplied return series and factor choice. It does not include unsmoothing or
+factor-selection uncertainty.
+
+``FactorBetas.n_obs`` retains the legacy aligned-row count minus ``warmup_period``;
+its descriptive covariance and means use that truncated window. Under equal
+weights factorlasso uses all aligned rows. ``fit.prior.n_obs`` reports the actual
+expert-regression count when available, so those two counts can differ.
+
+Pricing with the multi-factor deflator
+------------------------------------------------------------
 
 The multi-factor measure then replaces the benchmark index with a deflator path
 and solves the same root-finding step:

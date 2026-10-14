@@ -65,6 +65,8 @@ from privateassets.matf._betas import (
     DEFAULT_SPAN_FREQ,
     DEFAULT_WARMUP_PERIOD,
     FactorBetas,
+    ExpertPrior,
+    PriorDiagnostics,
     SignConstraint,
     fit_factor_betas,
 )
@@ -171,6 +173,8 @@ __all__ = [
     # factor loadings
     'fit_factor_betas',
     'FactorBetas',
+    'ExpertPrior',
+    'PriorDiagnostics',
     'SignConstraint',
     'DEFAULT_REG_LAMBDA',
     'DEFAULT_SPAN',

@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.0] - 2026-10-14
 
 ### Added
 
@@ -20,7 +20,23 @@
   runs the estimator end to end on cohorts against supplied loadings. No existing
   generator, seed or golden changes.
 
-No computed value of an existing function changes.
+- `ExpertPrior`, `PriorDiagnostics` and the keyword-only `expert_prior` argument
+  on `fit_factor_betas` and `estimate_matf_alpha`. The selected factor receives a
+  weighted univariate OLS centre and a sign-oriented Bartlett HAC floor. Finite
+  prior overrides and hard signs retain precedence. Each loading bootstrap draw
+  re-estimates its prior; estimator provenance records the specification.
+
+### Fixed
+
+- Supplied subset or reordered loadings now select covariance and deflator
+  columns in the same order. A mismatched seed covariance raises a shape error.
+- Loading-fit documentation now states the sign-code mapping, single-response
+  LASSO behaviour and legacy observation-count convention accurately.
+
+### Changed
+
+- The `factors` extra requires `factorlasso>=1.0.0`. Existing positional argument
+  order and default no-prior loading results are preserved.
 
 ## [0.7.1] - 2026-10-07
 
