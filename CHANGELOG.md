@@ -28,6 +28,7 @@
 
 ### Fixed
 
+- Duplicate dates within a cohort now raise instead of double-counting cash flows.
 - Supplied subset or reordered loadings now select covariance and deflator
   columns in the same order. A mismatched seed covariance raises a shape error.
 - Loading-fit documentation now states the sign-code mapping, single-response

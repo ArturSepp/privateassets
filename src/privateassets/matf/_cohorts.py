@@ -59,7 +59,7 @@ class CohortCashFlows:
         group: strategy group label as the extract names it.
         vintage: vintage year.
         num_funds: funds pooled in the cohort at its last period.
-        dates: period-end dates, ascending.
+        dates: unique period-end dates, ascending.
         paid_in: per-period paid-in capital ``c_t >= 0``, aligned to ``dates``.
         dist: per-period distributions ``d_t >= 0``, aligned to ``dates``.
         nav: residual valuation level ``V_t >= 0``, aligned to ``dates``. NaN
@@ -80,6 +80,8 @@ class CohortCashFlows:
             if len(values) != n:
                 raise ValueError(f"{name} has {len(values)} values against {n} dates "
                                  f"for {self.group!r} vintage {self.vintage}")
+        if not self.dates.is_unique:
+            raise ValueError(f"dates must be unique for {self.group!r} vintage {self.vintage}")
         if n and not self.dates.is_monotonic_increasing:
             raise ValueError(f"dates must ascend for {self.group!r} vintage {self.vintage}")
 
@@ -219,7 +221,7 @@ def build_cohorts(extract: pd.DataFrame,
 
     Raises:
         ValueError: if a required column is absent, the band is not in the
-            extract, or ``groups`` selects no rows.
+            extract, ``groups`` selects no rows, or a cohort repeats a period.
     """
     missing = [c for c in COHORT_COLUMNS if c not in extract.columns]
     if missing:

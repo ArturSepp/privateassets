@@ -117,6 +117,22 @@ def test_the_maturity_filter_drops_the_unrealised_vintage(cohorts):
         filter_mature(cohorts, max_residual_ratio=-0.1)
 
 
+def test_duplicate_cohort_periods_are_rejected(extract):
+    """Fails if a repeated period silently doubles flows while NAVs collapse downstream."""
+    first = extract.loc[extract['band'] == FULL_POOLED_BAND].iloc[[0]]
+    repeated = pd.concat([extract, first], ignore_index=True)
+    with pytest.raises(ValueError, match=r'dates must be unique.*Alpha Funds.*2001'):
+        build_cohorts(repeated)
+
+
+def test_cohort_container_rejects_duplicate_dates():
+    """Fails if callers can bypass the period-uniqueness invariant outside the reader."""
+    with pytest.raises(ValueError, match=r'dates must be unique.*synthetic.*2020'):
+        CohortCashFlows(group='synthetic', vintage=2020, num_funds=1,
+                        dates=pd.DatetimeIndex(['2020-03-31', '2020-03-31']),
+                        paid_in=np.array([100., 100.]), dist=np.zeros(2), nav=np.ones(2))
+
+
 def test_the_summary_has_one_row_per_cohort(cohorts):
     summary = cohort_summary(cohorts)
     assert len(summary) == len(cohorts)
