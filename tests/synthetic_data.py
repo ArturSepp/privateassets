@@ -244,3 +244,68 @@ def make_collinear_factor_panel(rho: float = 0.90,  # correlation between Equity
                               + rng.normal(0.0, residual_vol, n_quarters),
                               index=index, name='asset')
     return asset_returns, factor_returns, beta
+
+
+def make_cohort_extract(groups: Tuple[str, ...] = ('1:Alpha Funds', '2:Beta Funds'),
+                        vintages: Tuple[int, ...] = (2001, 2004, 2007),
+                        n_quarters: int = 48,  # path length per cohort, twelve years
+                        seed: int = SEED,
+                        ) -> pd.DataFrame:
+    """a pooled-cohort cash-flow extract in the delivered flat-file layout.
+
+    One row per strategy group, IRR percentile band, vintage and quarter, with
+    paid-in, distributions and the residual valuation as a percent of committed
+    capital. Five bands per cohort, the full pool first, so a reader that
+    forgets to select a band double counts. The youngest vintage is left
+    unrealised so the maturity filter has something to exclude, and the first
+    quarter of every cohort carries the literal ``NA`` the extract uses for a
+    missing currency amount.
+
+    Returns:
+        DataFrame with the raw column names of the extract, ready to be written
+        to CSV and read back with ``load_cohort_extract``.
+    """
+    rng = np.random.default_rng(seed)
+    bands = ['IRR, Percentile, Minimum: 0, Maximum: 100',
+             'IRR, Percentile, Minimum: 0, Maximum: 25',
+             'IRR, Percentile, Minimum: 25, Maximum: 50',
+             'IRR, Percentile, Minimum: 50, Maximum: 75',
+             'IRR, Percentile, Minimum: 75, Maximum: 100']
+    rows: List[Dict] = []
+    for g, group in enumerate(groups):
+        for v, vintage in enumerate(vintages):
+            realised = v < len(vintages) - 1
+            quarters = pd.date_range(f'{vintage}-03-31', periods=n_quarters, freq='QE')
+            calls = rng.dirichlet(np.ones(12) * 2.0) * 95.0  # 95% of commitment called
+            n_dist = 28 if realised else 8
+            multiple = 1.7 + 0.1 * g
+            realised_share = 1.0 if realised else 0.35  # the young cohort has paid out a third
+            dists = rng.dirichlet(np.ones(n_dist) * 2.0) * 95.0 * multiple * realised_share
+            paid_in = np.zeros(n_quarters)
+            paid_in[:12] = calls
+            dist = np.zeros(n_quarters)
+            dist[12:12 + n_dist] = dists
+            nav = np.zeros(n_quarters)
+            invested = 0.0
+            for t in range(n_quarters):
+                invested = invested * (1.0 + 0.02 + 0.03 * rng.standard_normal()) \
+                    + paid_in[t] - dist[t] / multiple
+                nav[t] = max(invested, 0.0) * (1.0 if t < 12 + n_dist else 0.0)
+            if not realised:
+                nav[12 + n_dist:] = nav[12 + n_dist - 1]
+            for b, band in enumerate(bands):
+                share = 1.0 if b == 0 else 0.25
+                for t, date in enumerate(quarters):
+                    rows.append({'ResultID': len(rows) + 1,
+                                 'Custom Group Name': group,
+                                 'Percentile Filter': band,
+                                 'Vintage': vintage,
+                                 'NumberOfFunds': 12 if b == 0 else 3,
+                                 'PeriodEndDate': date.strftime('%Y-%m-%d'),
+                                 'PaidIn(MM USD)': 'NA' if t == 0 else round(paid_in[t] * share * 10.0, 2),
+                                 'Dist(MM USD)': 'NA' if t == 0 else round(dist[t] * share * 10.0, 2),
+                                 'Valuation(MM USD)': 'NA' if t == 0 else round(nav[t] * share * 10.0, 2),
+                                 'PaidIn(%)': round(paid_in[t] * share, 4),
+                                 'Dist(%)': round(dist[t] * share, 4),
+                                 'Valuation(%)': round(nav[t] * share, 4)})
+    return pd.DataFrame(rows)

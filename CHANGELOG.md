@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added
+
+- `load_cohort_extract`, `build_cohorts`, `filter_mature`, `cohorts_to_cash_flows`,
+  `cohort_summary` and the `CohortCashFlows` container in the new module
+  `privateassets.matf._cohorts`. A pooled-cohort cash-flow extract (one strategy x
+  vintage path per row group, one copy per IRR percentile band, amounts as a
+  percent of committed capital) is read into cohorts and converted into the tidy
+  `(cf, navs)` frames, so `nav_implied_returns`, the single-benchmark measures and
+  `estimate_matf_alpha` run on cohorts unchanged. Column names are arguments and
+  the reader carries no vendor taxonomy. A missing flow reads as zero and a
+  missing valuation is dropped rather than invented.
+- `make_cohort_extract` in the test data, drawing an extract in the delivered
+  flat-file layout with five bands per cohort, a literal `NA` for a missing
+  currency amount, and an unrealised youngest vintage. `tests/test_cohorts.py`
+  proves the band selection, the sign convention and the maturity filter, and
+  runs the estimator end to end on cohorts against supplied loadings. No existing
+  generator, seed or golden changes.
+
+No computed value of an existing function changes.
+
 ## [0.7.1] - 2026-10-07
 
 ### Added

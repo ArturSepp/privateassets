@@ -1,7 +1,7 @@
 .. meta::
    :description: Core privateassets workflows: KS-PME, Direct Alpha and vintage statistics, the
-      one-call multi-factor alpha estimator, NAV-implied returns, shrinkage factor loadings and the
-      multi-factor deflator.
+      one-call multi-factor alpha estimator, NAV-implied returns, pooled-cohort extracts, shrinkage
+      factor loadings and the multi-factor deflator.
 
 Core workflows
 ==============
@@ -77,6 +77,31 @@ different frequencies raises, naming the offenders:
 Estimating the groups separately is honest. Interpolating them onto a common
 grid is an assumption about an unobserved path, and this package does not make
 it for you.
+
+A pooled-cohort extract reports one strategy x vintage path per row group
+rather than one fund, with paid-in, distributions and the residual valuation as
+a percent of committed capital and one copy per IRR percentile band. Read it,
+keep the full pool, drop the cohorts that are still mostly appraised, and the
+cohorts become the funds of a tidy panel:
+
+.. code-block:: python
+
+   from privateassets.matf import (build_cohorts, cohort_summary, cohorts_to_cash_flows,
+                                   filter_mature, load_cohort_extract)
+
+   extract = load_cohort_extract('cohort_extract.csv')          # percent columns, scaled to fractions
+   cohorts = build_cohorts(extract, groups=['1:Alpha Funds'])    # illustrative synthetic group
+   mature = filter_mature(cohorts, max_residual_ratio=0.10)     # residual valuation under 10% of paid-in
+   print(cohort_summary(mature))                                # DPI, TVPI, residual ratio per cohort
+   cf, navs = cohorts_to_cash_flows(mature)                     # every stage above now runs unchanged
+
+   result = estimate_matf_alpha(cf=cf, navs=navs, factor_levels=factor_levels, rf_rate=rf_quarterly)
+
+
+Amounts are a percent of committed capital by default, so every cohort carries
+the same commitment and the pooled series is equal-commitment weighted. Pass
+the currency columns with ``scale=1.0`` to weight by capital instead. Column
+names are arguments, and nothing about a vendor's taxonomy is baked in.
 
 Factor loadings come from the shrinkage estimator. The panel is short and the
 factors are collinear, so an unconstrained least-squares beta is not usable:
