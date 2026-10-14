@@ -30,7 +30,13 @@
 
 - Duplicate dates within a cohort now raise instead of double-counting cash flows.
 - Supplied subset or reordered loadings now select covariance and deflator
-  columns in the same order. A mismatched seed covariance raises a shape error.
+  columns in the same order, before checking overlapping history. Missing values
+  in unused factors no longer block pricing. A mismatched seed covariance raises
+  a shape error.
+- Expert-prior fits reject internal observation gaps rather than compressing the
+  HAC lag grid, including through the estimator and loading bootstrap.
+- Accepted NumPy scalar prior settings are normalized to built-in numeric types
+  so estimator provenance remains JSON serializable.
 - Loading-fit documentation now states the sign-code mapping, single-response
   LASSO behaviour and legacy observation-count convention accurately.
 

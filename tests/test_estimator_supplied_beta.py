@@ -28,3 +28,15 @@ def test_supplied_beta_covariance_shape_error_names_both_shapes():
     with pytest.raises(ValueError, match=r'shape \(4, 4\).*shape \(2, 2\)'):
         estimate_matf_alpha(*make_factor_driven_panel(), beta=pd.Series({'Credit': .5, 'Equity': .7}),
                             sigma_default=np.zeros((4, 4)))
+
+
+def test_unused_missing_factor_does_not_block_supplied_subset():
+    """Fails if an unused all-missing factor removes the selected factors' pricing window."""
+    cf, navs, levels, rf = make_factor_driven_panel()
+    beta = pd.Series({'Credit': .5, 'Equity': .7})
+    levels['Rates'] = np.nan
+    selected = estimate_matf_alpha(cf, navs, levels[beta.index], rf, beta=beta, theta=0.0)
+    full = estimate_matf_alpha(cf, navs, levels, rf, beta=beta, theta=0.0)
+    np.testing.assert_allclose(full.vintage_alpha.matf_alpha, selected.vintage_alpha.matf_alpha,
+                               atol=1e-10, rtol=0)
+    assert full.provenance['n_periods'] == selected.provenance['n_periods']

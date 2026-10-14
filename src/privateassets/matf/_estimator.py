@@ -162,6 +162,12 @@ def estimate_matf_alpha(cf: pd.DataFrame,
         raise ValueError(f"expert_prior must be an ExpertPrior, got {expert_prior!r}")
     if fit_kwargs and 'expert_prior' in fit_kwargs:
         raise ValueError("pass expert_prior as its named argument, not inside fit_kwargs")
+    if beta is not None:
+        beta = pd.Series(beta)
+        unknown = [f for f in beta.index if f not in factor_levels.columns]
+        if unknown:
+            raise ValueError(f"beta names factors absent from factor_levels: {unknown}")
+        factor_levels = factor_levels[list(beta.index)]
     returns_panel, capital = nav_implied_returns(cf, navs, freq=freq, require_regular=True)
     pooled = pool_vintage_returns(returns_panel, capital)
     if pooled.empty:
@@ -185,27 +191,23 @@ def estimate_matf_alpha(cf: pd.DataFrame,
     unsmoothed = qis.unsmooth_returns_glm(pooled, ar_order=1, theta=theta)
     unsmoothed = pd.Series(unsmoothed, index=pooled.index, name='unsmoothed').dropna()
 
-    factor_returns = np.log(factor_levels.resample(freq).last()).diff().dropna(how='any')
-    aligned_index = unsmoothed.index.intersection(factor_returns.index)
+    factor_returns = np.log(factor_levels.resample(freq).last()).diff()
+    aligned_index = unsmoothed.index.intersection(factor_returns.dropna(how='any').index)
     if len(aligned_index) < 3:
         raise ValueError(f"factor panel overlaps the reporting window in only "
                          f"{len(aligned_index)} periods; check the factor levels cover it")
 
     betas: Optional[FactorBetas] = None
     if beta is None:
-        betas = fit_factor_betas(unsmoothed.loc[aligned_index],
-                                 factor_returns.loc[aligned_index],
+        # Preserve the original grid so expert-prior validation can detect internal gaps.
+        fit_asset = unsmoothed if expert_prior is not None else unsmoothed.loc[aligned_index]
+        fit_factors = factor_returns if expert_prior is not None else factor_returns.loc[aligned_index]
+        betas = fit_factor_betas(fit_asset, fit_factors,
                                  sign_constraints=sign_constraints,
                                  prior_beta=prior_beta,
                                  expert_prior=expert_prior,
                                  **(fit_kwargs or {}))
         beta = betas.beta
-    else:
-        beta = pd.Series(beta)
-        unknown = [f for f in beta.index if f not in factor_returns.columns]
-        if unknown:
-            raise ValueError(f"beta names factors absent from factor_levels: {unknown}")
-        factor_levels = factor_levels[list(beta.index)]
 
     if sigma_default is not None and np.shape(sigma_default) != (len(beta), len(beta)):
         raise ValueError(f"sigma_default shape {np.shape(sigma_default)} does not match "

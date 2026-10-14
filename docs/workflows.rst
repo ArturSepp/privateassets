@@ -162,6 +162,13 @@ returns with the named columns. Signs are caller policy, not package defaults:
                           prior_beta=None, span=None)
    print(fit.prior)
 
+Expert-prior fits require a complete common observation grid with unique ascending
+indices and regularly spaced dates. Leading and trailing unavailable history is
+trimmed; internal missing rows or values raise ``ValueError``. This prevents a
+missing quarter or month from becoming an adjacent observation in the HAC
+calculation. The same check applies to estimator and bootstrap calls. Fits without
+an expert prior retain their existing complete-case handling.
+
 FREE maps to NaN in factorlasso, ZERO to zero. FREE supplies no explicit sign;
 the default automatic sign layer can still restrict the loading. A conflicting
 explicit sign takes precedence over the expert floor. Finite ``prior_beta``

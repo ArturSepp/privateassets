@@ -102,6 +102,8 @@ class ExpertPrior:
         if (isinstance(self.hac_lags, (bool, np.bool_)) or not isinstance(self.hac_lags, Integral)
                 or self.hac_lags < 0):
             raise ValueError(f"hac_lags must be an int >= 0 and not a bool, got {self.hac_lags!r}")
+        object.__setattr__(self, 'bound_n_std', float(self.bound_n_std))
+        object.__setattr__(self, 'hac_lags', int(self.hac_lags))
 
 
 @dataclass(frozen=True)
@@ -203,7 +205,10 @@ def fit_factor_betas(asset_returns: pd.Series,
         prior_beta: shrinkage target per factor. Factors absent default to zero
             without an expert prior; finite entries override its computed centres.
         expert_prior: selected-factor OLS centre and floor; None preserves the
-            ordinary fit. Set hac_lags in units of the input frequency.
+            ordinary fit. Set hac_lags in units of the input frequency. Requires
+            a complete common observation grid: unique ascending indices, no
+            internal missing rows or values, and regular spacing for dates.
+            Leading and trailing unavailable history is trimmed.
         reg_lambda: group-penalty strength.
         span: EWMA span for the loss weights, in periods of the input frequency.
             Pass None for equal weights, which is the right choice for in-sample
@@ -230,7 +235,8 @@ def fit_factor_betas(asset_returns: pd.Series,
             ``pip install "privateassets[factors]"``.
         ValueError: if the inputs do not align, if fewer than
             ``warmup_period + 1`` complete observations survive, or if a sign
-            constraint names a factor absent from ``factor_returns``.
+            constraint names a factor absent from ``factor_returns``. Also raised
+            if an expert-prior fit would compress gaps in the observation grid.
         RuntimeError: if the installed factorlasso lacks expert-prior support.
     """
     try:
@@ -250,6 +256,10 @@ def fit_factor_betas(asset_returns: pd.Series,
             raise ValueError(f"expert_prior must be an ExpertPrior, got {expert_prior!r}")
         if expert_prior.factor not in factors:
             raise ValueError(f"expert_prior factor {expert_prior.factor!r} absent from columns {factors!r}")
+        for index in (asset_returns.index, factor_returns.index):
+            if not index.is_unique or not index.is_monotonic_increasing:
+                raise ValueError("expert_prior requires a complete common observation grid "
+                                 "with unique ascending indices")
         required = {'factor_for_prior', 'expert_prior_bound_n_std', 'expert_prior_hac_lags'}
         if not required.issubset(signature(LassoModel).parameters):
             import factorlasso
@@ -266,6 +276,17 @@ def fit_factor_betas(asset_returns: pd.Series,
     if len(aligned) <= warmup_period:
         raise ValueError(f"need more than warmup_period={warmup_period} complete observations, "
                          f"got {len(aligned)}")
+    if expert_prior is not None:
+        # factorlasso's HAC lags count rows, so dropping internal periods changes the bandwidth.
+        for index in (asset_returns.index, factor_returns.index):
+            window = index[(index >= aligned.index[0]) & (index <= aligned.index[-1])]
+            if not window.equals(aligned.index):
+                raise ValueError("expert_prior requires a complete common observation grid; "
+                                 "internal missing rows or values would compress HAC lags")
+        if (isinstance(aligned.index, pd.DatetimeIndex) and aligned.index.freq is None
+                and aligned.index.inferred_freq is None):
+            raise ValueError("expert_prior requires a complete common observation grid "
+                             "with regularly spaced dates")
 
     y_aligned = aligned.iloc[:, 0]
     x_aligned = aligned.iloc[:, 1:]

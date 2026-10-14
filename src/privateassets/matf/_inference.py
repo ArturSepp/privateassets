@@ -132,7 +132,7 @@ def bootstrap_factor_betas(asset_returns: pd.Series,
     fit_kwargs = dict(fit_kwargs or {})
     fit_kwargs.setdefault('span', None)  # a resampled panel has no time ordering to weight
 
-    point_fit: FactorBetas = fit_factor_betas(aligned.iloc[:, 0], aligned.iloc[:, 1:],
+    point_fit: FactorBetas = fit_factor_betas(asset_returns, factor_returns,
                                               **fit_kwargs)
 
     n_obs = len(aligned)

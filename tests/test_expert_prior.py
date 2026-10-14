@@ -3,6 +3,7 @@
 # packages
 import dataclasses
 import inspect
+import json
 import numpy as np
 import pandas as pd
 import pytest
@@ -38,7 +39,7 @@ def test_floor_matches_aligned_statistics_and_independent_hac(span):
     """Fails on wrong alignment, weights, HAC bandwidth, centre or floor extraction."""
     asset, factors = _floor_panel()
     asset = asset.iloc[2:].copy()
-    asset.iloc[7] = np.nan
+    asset.iloc[0] = np.nan  # unavailable leading history may be trimmed without compressing HAC lags
     fit = fit_factor_betas(asset, factors, span=span, expert_prior=ExpertPrior('Equity'))
     aligned = pd.concat([asset, factors], axis=1, join='inner').dropna()
     y, x = aligned.iloc[:, 0], aligned[['Equity']]
@@ -196,3 +197,52 @@ def test_public_exports_and_positional_compatibility():
         assert list(parameters)[list(parameters).index('prior_beta') + 1] == following
         assert parameters['expert_prior'].kind == inspect.Parameter.KEYWORD_ONLY
         assert 'expert_prior:' in function.__doc__
+
+
+@pytest.mark.parametrize('gap', ['asset_value', 'factor_value', 'asset_date', 'factor_date', 'shared_date'])
+def test_expert_prior_rejects_internal_grid_gaps(gap):
+    """Fails if complete-case filtering turns a multi-period gap into one HAC lag."""
+    asset, factors = _floor_panel()
+    date = asset.index[7]
+    if gap == 'asset_value':
+        asset.loc[date] = np.nan
+    elif gap == 'factor_value':
+        factors.loc[date, 'Rates'] = np.nan
+    elif gap == 'asset_date':
+        asset = asset.drop(date)
+    elif gap == 'factor_date':
+        factors = factors.drop(date)
+    else:
+        asset, factors = asset.drop(date), factors.drop(date)
+    with pytest.raises(ValueError, match='expert_prior requires a complete common observation grid'):
+        fit_factor_betas(asset, factors, span=None, expert_prior=ExpertPrior('Equity'))
+
+
+def test_no_prior_retains_complete_case_gap_handling():
+    """Guards the existing no-prior results while expert-prior gaps become explicit errors."""
+    asset, factors = _floor_panel()
+    asset.iloc[7] = np.nan
+    actual = fit_factor_betas(asset, factors, span=None)
+    complete = asset.dropna().index
+    expected = fit_factor_betas(asset.loc[complete], factors.loc[complete], span=None)
+    np.testing.assert_allclose(actual.beta, expected.beta, atol=1e-12, rtol=0)
+    assert actual.n_obs == expected.n_obs
+
+
+def test_numpy_prior_settings_have_json_serializable_provenance():
+    """Fails if accepted NumPy scalars survive into machine-readable prior provenance."""
+    prior = ExpertPrior('Equity', bound_n_std=np.float32(1), hac_lags=np.int64(1))
+    result = estimate_matf_alpha(*make_factor_driven_panel(), expert_prior=prior,
+                                 fit_kwargs={'span': None})
+    encoded = json.loads(json.dumps(result.provenance))
+    assert encoded['expert_prior'] == {'factor': 'Equity', 'bound_n_std': 1.0, 'hac_lags': 1}
+    assert type(prior.bound_n_std) is float and type(prior.hac_lags) is int
+
+
+def test_estimator_does_not_hide_factor_gaps_from_expert_prior():
+    """Fails if estimator alignment drops a missing factor quarter before prior validation."""
+    cf, navs, levels, rf = make_factor_driven_panel()
+    levels.loc['2015-04-01':'2015-06-30', 'Credit'] = np.nan
+    with pytest.raises(ValueError, match='expert_prior requires a complete common observation grid'):
+        estimate_matf_alpha(cf, navs, levels, rf, expert_prior=ExpertPrior('Equity'),
+                             fit_kwargs={'span': None}, theta=0.0)
