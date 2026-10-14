@@ -337,7 +337,7 @@ def fit_factor_betas(asset_returns: pd.Series,
         r2 = float(np.asarray(result.r2).flatten()[0])
 
     post_warmup = x_aligned.iloc[warmup_period:]
-    sigma = pd.DataFrame(np.cov(post_warmup.values, rowvar=False),
+    sigma = pd.DataFrame(np.atleast_2d(np.cov(post_warmup.values, rowvar=False)),
                          index=factors, columns=factors)
 
     return FactorBetas(beta=beta,

@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 # qis / project
 from privateassets.matf import (
+    ExpertPrior,
     FactorBetas,
     SignConstraint,
     fit_factor_betas,
@@ -154,6 +155,36 @@ def test_insample_covariance_is_labelled_and_not_point_in_time():
     early = fit_factor_betas(asset.iloc[:40], factors.iloc[:40], span=None)
     assert not np.allclose(fit.sigma_quarterly_insample.values,
                            early.sigma_quarterly_insample.values)
+
+
+@pytest.mark.parametrize('use_expert_prior', [False, True], ids=['ordinary', 'expert'])
+def test_single_factor_covariance_has_labeled_matrix_shape(use_expert_prior: bool) -> None:
+    """One-factor fits retain a labeled matrix and the sample-variance convention."""
+    asset, factors = _panel()
+    factors = factors[['Equity']]
+    prior = ExpertPrior(factor='Equity', bound_n_std=1.0, hac_lags=1) if use_expert_prior else None
+    warmup_period = 12
+    fit = fit_factor_betas(asset, factors, span=None, warmup_period=warmup_period,
+                           expert_prior=prior)
+
+    values = factors['Equity'].iloc[warmup_period:].to_list()
+    mean = sum(values) / len(values)
+    expected_variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
+    covariance = fit.sigma_quarterly_insample
+    assert covariance.shape == (1, 1)
+    assert covariance.index.tolist() == ['Equity']
+    assert covariance.columns.tolist() == ['Equity']
+    np.testing.assert_allclose(covariance.to_numpy(), [[expected_variance]], atol=1e-6, rtol=0)
+    assert fit.beta.index.tolist() == ['Equity']
+    assert np.isfinite(fit.beta.to_numpy()).all()
+    assert np.isfinite(fit.alpha_const)
+    if use_expert_prior:
+        assert fit.prior is not None
+        assert fit.prior.factor == 'Equity'
+        assert fit.prior.n_obs is None or fit.prior.n_obs == len(factors)
+        assert np.isfinite([fit.prior.centre, fit.prior.floor, fit.prior.se_hac]).all()
+    else:
+        assert fit.prior is None
 
 
 def test_betas_feed_the_deflator_end_to_end():

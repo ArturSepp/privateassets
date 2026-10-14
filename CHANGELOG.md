@@ -28,6 +28,8 @@
 
 ### Fixed
 
+- Single-factor loading fits now return a labelled 1x1 covariance matrix instead
+  of failing when NumPy returns a scalar sample covariance.
 - Duplicate dates within a cohort now raise instead of double-counting cash flows.
 - Supplied subset or reordered loadings now select covariance and deflator
   columns in the same order, before checking overlapping history. Missing values
