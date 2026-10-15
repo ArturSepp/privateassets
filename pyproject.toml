@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "privateassets"
-version = "0.7.1"
+version = "0.8.0"
 description = "Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,7 +37,7 @@ dependencies = [
 [project.optional-dependencies]
 # Sign-constrained shrinkage betas. factorlasso is GPL-3: see the licence note in
 # README.md before redistributing a combined work.
-factors = ["factorlasso>=0.10.0"]
+factors = ["factorlasso>=1.0.0"]
 excel = ["openpyxl>=3.1"]
 plot = ["matplotlib>=3.8"]
 docs = ["furo>=2024.8.6", "sphinx>=8.0"]

@@ -19,8 +19,23 @@ Unsmoothing lives in ``qis``. Estimate the AR(1) coefficient here with
 ``fit_panel_ar1``, then apply it with
 ``qis.unsmooth_returns_glm(returns, ar_order=1, theta=theta_hat)``.
 
+A pooled-cohort extract (one strategy x vintage path per row group) is read
+with ``load_cohort_extract`` and turned into the same tidy frames with
+``cohorts_to_cash_flows``, so every stage above runs on cohorts unchanged.
+
 Importing this module has no side effects and reads nothing from disk.
 """
+from privateassets.matf._cohorts import (
+    COHORT_COLUMNS,
+    DEFAULT_MAX_RESIDUAL_RATIO,
+    FULL_POOLED_BAND,
+    CohortCashFlows,
+    build_cohorts,
+    cohort_summary,
+    cohorts_to_cash_flows,
+    filter_mature,
+    load_cohort_extract,
+)
 from privateassets.matf._pme import (
     CF_COLUMNS,
     NAV_COLUMNS,
@@ -50,6 +65,8 @@ from privateassets.matf._betas import (
     DEFAULT_SPAN_FREQ,
     DEFAULT_WARMUP_PERIOD,
     FactorBetas,
+    ExpertPrior,
+    PriorDiagnostics,
     SignConstraint,
     fit_factor_betas,
 )
@@ -102,6 +119,16 @@ __all__ = [
     'load_cash_flows',
     'load_navs',
     'cf_with_terminal_for_vintage',
+    # pooled-cohort extracts
+    'load_cohort_extract',
+    'build_cohorts',
+    'filter_mature',
+    'cohorts_to_cash_flows',
+    'cohort_summary',
+    'CohortCashFlows',
+    'COHORT_COLUMNS',
+    'FULL_POOLED_BAND',
+    'DEFAULT_MAX_RESIDUAL_RATIO',
     # single-benchmark measures
     'xirr',
     'ks_pme',
@@ -146,6 +173,8 @@ __all__ = [
     # factor loadings
     'fit_factor_betas',
     'FactorBetas',
+    'ExpertPrior',
+    'PriorDiagnostics',
     'SignConstraint',
     'DEFAULT_REG_LAMBDA',
     'DEFAULT_SPAN',

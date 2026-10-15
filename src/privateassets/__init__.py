@@ -10,6 +10,8 @@ which is a sibling rather than a parent.
 
 Importing this package has no side effects and reads nothing from disk.
 """
-__version__ = "0.7.1"
+__version__ = "0.8.0"
 
-__all__ = ['__version__']
+from privateassets.matf._betas import ExpertPrior, PriorDiagnostics
+
+__all__ = ['__version__', 'ExpertPrior', 'PriorDiagnostics']

@@ -33,3 +33,8 @@ schema rather than renaming your files.
 - **Factor levels** — a daily panel of tradable factor index levels. Excess of the
   risk-free rate, because the deflator adds the risk-free leg separately.
 - **Risk-free rate** — a quarterly simple yield on a quarter-end grid.
+- **Pooled-cohort extract** — one row per strategy group, IRR percentile band,
+  vintage year and period end, carrying per-period paid-in capital and
+  distributions and the residual valuation level, as a percent of committed
+  capital or in currency. `load_cohort_extract` takes the column names as
+  arguments and scales percent columns to fractions.

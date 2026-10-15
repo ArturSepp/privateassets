@@ -293,3 +293,30 @@ def test_a_supplied_theta_ignores_the_correction():
     result = estimate_matf_alpha(cf, navs, levels, rf, theta=0.25,
                                  bias_correction=BiasCorrection.BOOTSTRAP)
     assert result.theta == 0.25 and result.theta_raw == 0.25
+
+
+def test_bootstrap_reestimates_each_draws_expert_prior(monkeypatch):
+    """Fails if forwarding is lost or the observed prior is frozen across resampled draws."""
+    from privateassets.matf import BetaBootstrap, ExpertPrior
+    from privateassets.matf import _inference
+    captured = []
+    original = _inference.fit_factor_betas
+
+    def capture(*args, **kwargs):
+        fit = original(*args, **kwargs)
+        captured.append(fit)
+        return fit
+
+    monkeypatch.setattr(_inference, 'fit_factor_betas', capture)
+    result = estimate_matf_alpha(*_panel(), expert_prior=ExpertPrior('Equity'),
+                                 num_bootstrap=5, block_size=4, fit_kwargs={'span': None})
+    assert isinstance(result.beta_bootstrap, BetaBootstrap)
+    assert result.beta_bootstrap.num_failed == 0
+    assert len(captured) == 6  # bootstrap point plus five successful draws
+    np.testing.assert_allclose(result.beta_bootstrap.point, result.betas.beta, rtol=0, atol=1e-10)
+    for fit in captured:
+        assert fit.prior.floor >= 0
+        if fit.prior.imposed:
+            assert np.sign(fit.prior.centre) * fit.beta['Equity'] >= fit.prior.floor - 1e-9
+    assert np.std([fit.prior.centre for fit in captured[1:]]) > 1e-6
+    assert np.std([fit.prior.floor for fit in captured[1:]]) > 1e-6

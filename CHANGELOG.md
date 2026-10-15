@@ -1,6 +1,51 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.0] - 2026-10-14
+
+### Added
+
+- `load_cohort_extract`, `build_cohorts`, `filter_mature`, `cohorts_to_cash_flows`,
+  `cohort_summary` and the `CohortCashFlows` container in the new module
+  `privateassets.matf._cohorts`. A pooled-cohort cash-flow extract (one strategy x
+  vintage path per row group, one copy per IRR percentile band, amounts as a
+  percent of committed capital) is read into cohorts and converted into the tidy
+  `(cf, navs)` frames, so `nav_implied_returns`, the single-benchmark measures and
+  `estimate_matf_alpha` run on cohorts unchanged. Column names are arguments and
+  the reader carries no vendor taxonomy. A missing flow reads as zero and a
+  missing valuation is dropped rather than invented.
+- `make_cohort_extract` in the test data, drawing an extract in the delivered
+  flat-file layout with five bands per cohort, a literal `NA` for a missing
+  currency amount, and an unrealised youngest vintage. `tests/test_cohorts.py`
+  proves the band selection, the sign convention and the maturity filter, and
+  runs the estimator end to end on cohorts against supplied loadings. No existing
+  generator, seed or golden changes.
+
+- `ExpertPrior`, `PriorDiagnostics` and the keyword-only `expert_prior` argument
+  on `fit_factor_betas` and `estimate_matf_alpha`. The selected factor receives a
+  weighted univariate OLS centre and a sign-oriented Bartlett HAC floor. Finite
+  prior overrides and hard signs retain precedence. Each loading bootstrap draw
+  re-estimates its prior; estimator provenance records the specification.
+
+### Fixed
+
+- Single-factor loading fits now return a labelled 1x1 covariance matrix instead
+  of failing when NumPy returns a scalar sample covariance.
+- Duplicate dates within a cohort now raise instead of double-counting cash flows.
+- Supplied subset or reordered loadings now select covariance and deflator
+  columns in the same order, before checking overlapping history. Missing values
+  in unused factors no longer block pricing. A mismatched seed covariance raises
+  a shape error.
+- Expert-prior fits reject internal observation gaps rather than compressing the
+  HAC lag grid, including through the estimator and loading bootstrap.
+- Accepted NumPy scalar prior settings are normalized to built-in numeric types
+  so estimator provenance remains JSON serializable.
+- Loading-fit documentation now states the sign-code mapping, single-response
+  LASSO behaviour and legacy observation-count convention accurately.
+
+### Changed
+
+- The `factors` extra requires `factorlasso>=1.0.0`. Existing positional argument
+  order and default no-prior loading results are preserved.
 
 ## [0.7.1] - 2026-10-07
 

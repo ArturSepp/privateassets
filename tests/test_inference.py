@@ -90,6 +90,16 @@ def test_provenance_is_recorded():
     assert out.ci == (5.0, 95.0)
 
 
+def test_expert_prior_bootstrap_rejects_internal_grid_gaps():
+    """Fails if bootstrap alignment hides an internal missing period from the prior fit."""
+    from privateassets.matf import ExpertPrior
+    asset, factors = _panel()
+    asset.iloc[7] = np.nan
+    with pytest.raises(ValueError, match='expert_prior requires a complete common observation grid'):
+        bootstrap_factor_betas(asset, factors, num_samples=2, block_size=4,
+                               fit_kwargs={'expert_prior': ExpertPrior('Equity')})
+
+
 def test_bootstrap_type_is_configurable():
     asset, factors = _panel()
     kw = dict(num_samples=20, block_size=8, seed=5)

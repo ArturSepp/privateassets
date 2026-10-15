@@ -100,6 +100,9 @@ def bootstrap_factor_betas(asset_returns: pd.Series,
             The default reflects an interior-point solver stopping short of the
             constraint rather than landing on it.
         fit_kwargs: forwarded to :func:`~privateassets.matf.fit_factor_betas`.
+            With an expert prior, every draw re-estimates its own centre and floor,
+            so the interval includes sampling variation of that floor. The default
+            span is None; use the same span for the original point estimate.
             ``span`` defaults to None here, because a resampled panel has no
             meaningful time ordering for an EWMA weight.
 
@@ -129,7 +132,7 @@ def bootstrap_factor_betas(asset_returns: pd.Series,
     fit_kwargs = dict(fit_kwargs or {})
     fit_kwargs.setdefault('span', None)  # a resampled panel has no time ordering to weight
 
-    point_fit: FactorBetas = fit_factor_betas(aligned.iloc[:, 0], aligned.iloc[:, 1:],
+    point_fit: FactorBetas = fit_factor_betas(asset_returns, factor_returns,
                                               **fit_kwargs)
 
     n_obs = len(aligned)

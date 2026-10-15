@@ -36,11 +36,11 @@ applied to every vintage. That is the identification design and it is recorded i
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Optional, Tuple
 # qis / project
 import qis
-from privateassets.matf._betas import FactorBetas, SignConstraint, fit_factor_betas
+from privateassets.matf._betas import ExpertPrior, FactorBetas, SignConstraint, fit_factor_betas
 from privateassets.matf._deflator import (factor_log_levels_panel, matf_deflator,
                                           rolling_factor_covar)
 from privateassets.matf._inference import BetaBootstrap, bootstrap_factor_betas
@@ -110,6 +110,8 @@ def estimate_matf_alpha(cf: pd.DataFrame,
                         seed: int = 1,
                         sigma_default: Optional[np.ndarray] = None,  # covariance before the first estimate
                         fit_kwargs: Optional[Dict[str, Any]] = None,  # passed to fit_factor_betas
+                        *,
+                        expert_prior: Optional[ExpertPrior] = None,  # selected-factor OLS centre and floor
                         ) -> MatfResult:
     """estimate multi-factor money-weighted alpha for a panel of vintages.
 
@@ -124,6 +126,9 @@ def estimate_matf_alpha(cf: pd.DataFrame,
             reconstruction and the loading fit only.
         sign_constraints: admissible sign per factor.
         prior_beta: shrinkage target per factor. None shrinks towards zero.
+        expert_prior: optional OLS centre and HAC floor, re-estimated for each
+            bootstrap draw. Ignored when beta is supplied. Use fit_kwargs with
+            span=None for equally weighted estimation and bootstrap points.
         beta: price against these loadings instead of fitting them, indexed by
             factor name. Supplying them skips the fit and the resampling, which
             is how a production loading vector is applied to a new panel, and how
@@ -153,6 +158,16 @@ def estimate_matf_alpha(cf: pd.DataFrame,
             panel does not overlap the reporting window, or if no vintage can be
             priced.
     """
+    if expert_prior is not None and not isinstance(expert_prior, ExpertPrior):
+        raise ValueError(f"expert_prior must be an ExpertPrior, got {expert_prior!r}")
+    if fit_kwargs and 'expert_prior' in fit_kwargs:
+        raise ValueError("pass expert_prior as its named argument, not inside fit_kwargs")
+    if beta is not None:
+        beta = pd.Series(beta)
+        unknown = [f for f in beta.index if f not in factor_levels.columns]
+        if unknown:
+            raise ValueError(f"beta names factors absent from factor_levels: {unknown}")
+        factor_levels = factor_levels[list(beta.index)]
     returns_panel, capital = nav_implied_returns(cf, navs, freq=freq, require_regular=True)
     pooled = pool_vintage_returns(returns_panel, capital)
     if pooled.empty:
@@ -176,25 +191,27 @@ def estimate_matf_alpha(cf: pd.DataFrame,
     unsmoothed = qis.unsmooth_returns_glm(pooled, ar_order=1, theta=theta)
     unsmoothed = pd.Series(unsmoothed, index=pooled.index, name='unsmoothed').dropna()
 
-    factor_returns = np.log(factor_levels.resample(freq).last()).diff().dropna(how='any')
-    aligned_index = unsmoothed.index.intersection(factor_returns.index)
+    factor_returns = np.log(factor_levels.resample(freq).last()).diff()
+    aligned_index = unsmoothed.index.intersection(factor_returns.dropna(how='any').index)
     if len(aligned_index) < 3:
         raise ValueError(f"factor panel overlaps the reporting window in only "
                          f"{len(aligned_index)} periods; check the factor levels cover it")
 
     betas: Optional[FactorBetas] = None
     if beta is None:
-        betas = fit_factor_betas(unsmoothed.loc[aligned_index],
-                                 factor_returns.loc[aligned_index],
+        # Preserve the original grid so expert-prior validation can detect internal gaps.
+        fit_asset = unsmoothed if expert_prior is not None else unsmoothed.loc[aligned_index]
+        fit_factors = factor_returns if expert_prior is not None else factor_returns.loc[aligned_index]
+        betas = fit_factor_betas(fit_asset, fit_factors,
                                  sign_constraints=sign_constraints,
                                  prior_beta=prior_beta,
+                                 expert_prior=expert_prior,
                                  **(fit_kwargs or {}))
         beta = betas.beta
-    else:
-        beta = pd.Series(beta)
-        unknown = [f for f in beta.index if f not in factor_returns.columns]
-        if unknown:
-            raise ValueError(f"beta names factors absent from factor_levels: {unknown}")
+
+    if sigma_default is not None and np.shape(sigma_default) != (len(beta), len(beta)):
+        raise ValueError(f"sigma_default shape {np.shape(sigma_default)} does not match "
+                         f"beta covariance shape {(len(beta), len(beta))}")
 
     beta_bootstrap = None
     if num_bootstrap > 0 and betas is not None:
@@ -205,6 +222,7 @@ def estimate_matf_alpha(cf: pd.DataFrame,
                                                 seed=seed,
                                                 fit_kwargs={'sign_constraints': sign_constraints,
                                                             'prior_beta': prior_beta,
+                                                            'expert_prior': expert_prior,
                                                             **(fit_kwargs or {})})
 
     sigma_by_period = rolling_factor_covar(factor_levels, span_months=covar_span_months,
@@ -242,6 +260,7 @@ def estimate_matf_alpha(cf: pd.DataFrame,
                                bias_correction=bias_correction.value,
                                n_periods=len(aligned_index),
                                beta_was_supplied=betas is None,
+                               expert_prior=asdict(expert_prior) if expert_prior is not None else None,
                                reporting_months=infer_reporting_frequency(navs).median()),
     )
 
