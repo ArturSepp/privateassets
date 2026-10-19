@@ -2,8 +2,8 @@
 
 Thanks for your interest in `privateassets`. The package estimates risk-adjusted alpha and factor
 exposures from private-asset cash flows, so a change here can move a number in a published table.
-Read the licence note below before you start: this repository is MIT, and its `factors` extra
-pulls in GPL-3 code.
+Read the licence note below before you start: this repository is MIT, and the development
+branch's `factors` extra requires the verified MIT FactorLasso release or later.
 
 ## Scope
 
@@ -29,12 +29,14 @@ Out of scope — these will be declined, so please open an issue to discuss befo
 
 ## The licence boundary
 
-`privateassets` is MIT. `factorlasso`, behind the `factors` extra, is GPL-3. The core install must
-therefore stay importable and useful without it: no module may import `factorlasso` at import
-time, only inside the function that needs it.
+`privateassets` is MIT. The development branch's `factors` extra requires
+`factorlasso>=1.0.4.post1`, the first verified MIT FactorLasso release. Preserve
+dependency notices; historical GPL releases retain their licences.
+The core install must stay importable and useful without optional estimators:
+no module may import `factorlasso` at import time, only inside the function that needs it.
 `test_factorlasso_is_imported_lazily_everywhere` enforces this, and CI runs both installs so
 neither can quietly become the other. A change that moves a `factorlasso` import to module scope
-makes an MIT install carry GPL-3 obligations, and will be declined.
+breaks the core-install contract and will be declined.
 
 ## Reporting a bug
 

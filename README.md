@@ -200,10 +200,20 @@ estimation and resampling, and optionally on
 [`factorlasso`](https://pypi.org/project/factorlasso/) for sign-constrained
 shrinkage betas. It does not depend on `optimalportfolios`, which is a sibling.
 
-**Licence note.** This package is MIT. `factorlasso` is GPL-3, so a redistributed
-work combining the two takes on GPL-3 obligations. Installing the `factors` extra
-is what creates that combination. The core PME and deflator paths do not import
-it.
+**Licence note.** This package is MIT. On the current development branch, the
+`factors` extra requires `factorlasso>=1.0.4.post1`, the first verified MIT
+FactorLasso release. Earlier published GPL FactorLasso releases retain their
+licences. The core PME and deflator paths remain usable without FactorLasso.
+Dependencies retain their own licences and notices; this does not make the
+entire installed environment MIT.
+
+The reviewed Windows core and factors environments include native libraries and
+headers under separate terms, including the GCC Runtime Library Exception,
+Microsoft Visual C++ redistributable terms and NVIDIA CUDA header terms bundled
+with Numba. CPU calculations do not require a CUDA backend or runtime. The
+[supplemental third-party notices](THIRD_PARTY_NOTICES.md) retain identified
+OpenBLAS/LAPACK notices; they do not certify redistribution of an entire
+environment or other platforms and versions.
 
 ## Data
 
@@ -289,5 +299,6 @@ citation is:
 
 ## License
 
-This project is licensed under the MIT License; see [`LICENSE.txt`](LICENSE.txt). The optional GPL-3
-combination created by installing `privateassets[factors]` is described under [Dependencies](#dependencies).
+This project is licensed under the MIT License; see [`LICENSE.txt`](LICENSE.txt).
+The optional FactorLasso version floor and dependency notices are described under
+[Dependencies](#dependencies).

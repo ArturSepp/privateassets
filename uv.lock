@@ -743,7 +743,7 @@ wheels = [
 
 [[package]]
 name = "factorlasso"
-version = "1.0.3"
+version = "1.0.4.post1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cvxpy", version = "1.7.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -758,9 +758,9 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/fc/0f79a086d4b4d1dad69f42bbf72aab11abe17e85264b4ed5b974c81189a4/factorlasso-1.0.3.tar.gz", hash = "sha256:9e609ef7bf357fde1ed44b78c6b1d605b4bed3ed834c9606d488ba9943a2255d", size = 431100, upload-time = "2026-10-07T01:44:52.546Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8b/99/1b22e779ca7aae0f914b568118b888dedc6e31d005bd5c766712a0db0b76/factorlasso-1.0.4.post1.tar.gz", hash = "sha256:caf0394b7b3f37ef47b809e669a67db5c4eb75700a792390cd65b005181f4147", size = 439289, upload-time = "2026-10-18T22:30:56.931Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/f3/3ef8e78b65f9cc544b40d2b6badaff2b8110f3d456899456338de4596e4a/factorlasso-1.0.3-py3-none-any.whl", hash = "sha256:3c519955139bad45adaeac77da75911271e0c74c96837321f10249a440fb8f10", size = 261865, upload-time = "2026-10-07T01:44:50.553Z" },
+    { url = "https://files.pythonhosted.org/packages/80/bc/75dd2b73d6a0ef63f0fdc4c644ec0afc85b69cb7a3873014db00012980fb/factorlasso-1.0.4.post1-py3-none-any.whl", hash = "sha256:14201d7e7bd4593201dfb1d858032a1fe6c9dc1f74f6fb9ac1261450d6c99922", size = 264306, upload-time = "2026-10-18T22:30:55.046Z" },
 ]
 
 [[package]]
@@ -2186,7 +2186,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "factorlasso", marker = "extra == 'factors'", specifier = ">=1.0.0" },
+    { name = "factorlasso", marker = "extra == 'factors'", specifier = ">=1.0.4.post1" },
     { name = "furo", marker = "extra == 'docs'", specifier = ">=2024.8.6" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.8" },
     { name = "numpy", specifier = ">=2.0" },

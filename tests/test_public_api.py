@@ -188,12 +188,11 @@ def _module_scope_imports(tree):
 
 
 def test_factorlasso_is_imported_lazily_everywhere():
-    """``factorlasso`` is a GPL-3 optional extra, so no module may import it at import time.
+    """``factorlasso`` is optional, so no module may import it at import time.
 
     A module-scope import would make a core install fail at
     ``import privateassets.matf``, turning the ``[factors]`` extra into a hard
-    dependency by accident and putting every install in the position of a
-    combined work with GPL-3 code.
+    dependency by accident.
     """
     offenders = []
     for path in _python_sources():
@@ -206,6 +205,23 @@ def test_factorlasso_is_imported_lazily_everywhere():
                 offenders.append(f"{path.name}:{node.lineno}")
     assert offenders == [], (f"factorlasso imported at module scope in {offenders}: "
                             f"move it inside the function that needs it")
+
+
+def test_factors_extra_rejects_pre_mit_factorlasso():
+    """A constrained resolver must not satisfy the extra with a historical GPL release."""
+    from packaging.requirements import Requirement
+
+    pyproject = REPOSITORY_ROOT / 'pyproject.toml'
+    if not pyproject.exists():
+        pytest.skip('not a source checkout')
+    match = re.search(r'^factors\s*=\s*\["([^"]+)"\]',
+                      pyproject.read_text(encoding='utf-8'), flags=re.MULTILINE)
+    assert match is not None, 'no factors extra declared in pyproject.toml'
+    requirement = Requirement(match.group(1))
+    assert requirement.name == 'factorlasso'
+    assert '1.0.4.post1' in requirement.specifier, 'the verified MIT minimum must install'
+    for historical in ('0.10.1', '1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.0.4'):
+        assert historical not in requirement.specifier, f'pre-MIT release {historical} accepted'
 
 
 def test_no_competing_stack_is_imported():

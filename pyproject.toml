@@ -9,7 +9,7 @@ description = "Multi-factor money-weighted PME for private-asset cash flows: ris
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-license-files = ["LICENSE.txt"]
+license-files = ["LICENSE.txt", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Artur Sepp", email = "artursepp@gmail.com" }]
 keywords = [
     "private equity", "private credit", "private assets", "PME",
@@ -35,9 +35,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Sign-constrained shrinkage betas. factorlasso is GPL-3: see the licence note in
-# README.md before redistributing a combined work.
-factors = ["factorlasso>=1.0.0"]
+# Sign-constrained shrinkage betas, from the first verified MIT FactorLasso release.
+factors = ["factorlasso>=1.0.4.post1"]
 excel = ["openpyxl>=3.1"]
 plot = ["matplotlib>=3.8"]
 docs = ["furo>=2024.8.6", "sphinx>=8.0"]

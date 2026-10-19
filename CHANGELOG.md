@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The optional `factors` extra now requires `factorlasso>=1.0.4.post1`, the first
+  verified MIT FactorLasso release. Core installs remain independent of the
+  optional estimator. Historical GPL releases retain their licences; numerical
+  implementations and public signatures are unchanged.
+- Ship supplemental OpenBLAS/LAPACK notices identified in the reviewed Windows
+  factors environment; preserve the native libraries' separate licence terms.
+
 ## [0.8.0] - 2026-10-14
 
 ### Added
