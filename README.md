@@ -16,8 +16,9 @@ data, or licensed datasets ship with the package.
 [![Downloads](https://static.pepy.tech/badge/privateassets)](https://pepy.tech/project/privateassets)
 [![Monthly](https://static.pepy.tech/badge/privateassets/month)](https://pepy.tech/project/privateassets)
 
-**Documentation:** [user guide](https://github.com/ArturSepp/privateassets/blob/main/docs/index.rst) ·
-[offline first success](https://github.com/ArturSepp/privateassets/blob/main/examples/first_success.py)
+**Documentation:** [privateassets.readthedocs.io](https://privateassets.readthedocs.io/en/latest/) ·
+[core workflows](https://privateassets.readthedocs.io/en/latest/workflows.html) ·
+[offline first success](examples/first_success.py)
 
 ---
 
@@ -63,7 +64,7 @@ sign-constrained shrinkage betas to
 [`factorlasso`](https://pypi.org/project/factorlasso/) through the optional
 `[factors]` extra.
 
-## When to use it — and when not
+### When to use it — and when not
 
 Use `privateassets` to estimate risk-adjusted alpha and systematic factor
 exposures of private-equity and private-credit funds from their cash flows and
@@ -78,8 +79,6 @@ package, and the factor loadings are in-sample by construction — one beta over
 the whole panel — so it is a measurement tool, not a live risk system. The
 caveats travel with every number in `provenance`.
 
----
-
 ## Installation
 
 ```bash
@@ -91,6 +90,86 @@ Sign-constrained shrinkage betas need the `factors` extra:
 ```bash
 pip install "privateassets[factors]"
 ```
+
+Built on [`qis`](https://pypi.org/project/qis/) for unsmoothing, covariance
+estimation and resampling, and optionally on
+[`factorlasso`](https://pypi.org/project/factorlasso/) for sign-constrained
+shrinkage betas. It does not depend on `optimalportfolios`, which is a sibling.
+
+**Licence note.** This package is MIT. The `factors` extra requires
+`factorlasso>=1.0.4.post1`, the first verified MIT FactorLasso release; earlier published GPL
+FactorLasso releases retain their licences. The core PME and deflator paths remain usable
+without FactorLasso. Dependencies retain their own licences and notices, which the
+[supplemental third-party notices](THIRD_PARTY_NOTICES.md) retain for the reviewed Windows core
+and factors environments; this does not make the entire installed environment MIT.
+
+**Data.** No data ships with this repository, and none may be added. Every input is licensed and
+read from a path you supply. Fund-level analysis requires user-supplied cash flows and NAVs;
+classical PME also needs benchmark levels, while MATF estimation needs factor levels and a
+matching risk-free-rate series. See [`DATA_README.md`](DATA_README.md).
+
+## Table of contents
+
+1. [Why privateassets](#why-privateassets)
+2. [Installation](#installation)
+3. [Statement of need](#statement-of-need)
+4. [Overview](#overview)
+5. [Five-minute quickstart](#five-minute-quickstart)
+6. [Examples](#examples)
+7. [Testing](#testing)
+8. [Changelog](#changelog)
+9. [Feedback & contributing](#feedback-contributing)
+10. [Citation](#citation)
+11. [Ecosystem](#ecosystem)
+12. [License](#license)
+13. [Disclaimer](#disclaimer)
+
+## Statement of need
+
+Private-asset performance is money-weighted and benchmark-relative: a public-market equivalent
+(PME) deflates each cash flow by the growth of a reference index and asks what is left. With one
+index, Direct Alpha, KS-PME and the generalised PME of Korteweg and Nagel charge the fund for one
+exposure and credit everything else to skill. `privateassets` replaces the single index by a
+tradable multi-factor deflator whose loadings are estimated from the fund's own NAV-implied,
+unsmoothed returns, point-in-time at every quarter end, and reports the classical measures next
+to the multi-factor result on the same cash flows. The methods paper is in preparation; its
+workspace is local by policy ([paper index](papers/README.md)).
+
+| Paper | Implemented analytics | Where |
+|---|---|---|
+| [TODO: Sepp et al., *A Multi-Factor Money-Weighted Alpha for Private Capital*, working title; reference once public] | The multi-factor money-weighted deflator, capital-weighted and per-vintage alpha, factor loadings with bootstrap intervals, AR(1) unsmoothing with bias correction, and the single-benchmark incumbents (`kn24_benchmark_deflator`, `kn16_gpme_deflator`) for side-by-side reporting | `privateassets.matf`, [core workflows](https://privateassets.readthedocs.io/en/latest/workflows.html) |
+
+## Overview
+
+The installable package is `src/privateassets/`, with the analytics in the `privateassets.matf`
+subpackage: KS-PME, Direct Alpha and vintage statistics, the one-call multi-factor alpha
+estimator, NAV-implied returns, pooled-cohort extracts, shrinkage factor loadings, the
+multi-factor deflator, the single-benchmark incumbents, and the bootstrap inference. The
+[core workflows guide](https://privateassets.readthedocs.io/en/latest/workflows.html) walks
+through them in order, the [conventions guide](https://privateassets.readthedocs.io/en/latest/conventions.html)
+fixes the return, frequency and sign conventions, and the
+[API reference](https://privateassets.readthedocs.io/en/latest/api.html) lists every public
+object. Loading fits accept `ExpertPrior` to centre a selected factor on its weighted
+univariate regression and impose a sign-oriented uncertainty floor; the returned
+`PriorDiagnostics` makes that convention inspectable, and the loading bootstrap re-estimates it
+on each draw. This reproduces an expert loading rule; the floor does not establish that the
+multifactor exposure is well identified.
+
+### Analytics at a glance
+
+| Area | What the package computes |
+|---|---|
+| Classical PME | KS-PME (`ks_pme`), Direct Alpha (`vintage_direct_alpha`) and vintage statistics on user-supplied cash flows, NAVs and benchmark levels |
+| Multi-factor alpha | `estimate_matf_alpha`: cash flows, NAVs and factor levels → capital-weighted and per-vintage alpha, factor loadings, bootstrap intervals and provenance, every intermediate returned, nothing written |
+| NAV-implied returns | Modified Dietz returns from reported NAVs and cash flows, one panel at one reporting frequency; mixed-frequency panels raise and name the offenders |
+| Unsmoothing | `fit_panel_ar1` across a panel of funds, with `BiasCorrection.BOOTSTRAP` (parametric simulation from the fitted model) or the analytic `KENDALL` formula; the inversion itself is `qis.unsmooth_returns_glm`; `theta_raw` is always reported |
+| Factor loadings | Sign-constrained shrinkage betas through `factorlasso` (`[factors]` extra), `ExpertPrior` centring and `PriorDiagnostics`; point-in-time covariance using only returns observed by each quarter end |
+| Deflators | The multi-factor MATF deflator; `kn24_benchmark_deflator` and `kn16_gpme_deflator` (with `kn16_sdf_params`) for the single-index incumbents, taking the equity factor as an excess log return and adding the risk-free leg back where the economics needs a total return |
+| Inference | `bootstrap_factor_betas`: block resampling through `qis` with the asset and its factors resampled together; `share_at_zero` reports how often a sign constraint binds (not a p-value) |
+
+Two caveats travel with every number and are recorded in `provenance`: the loadings are
+in-sample, and the smoothing coefficient is attenuated by measurement noise in the J-curve period
+even after bias correction.
 
 ## Five-minute quickstart
 
@@ -109,21 +188,13 @@ privateassets 0.8.0: core PME calculation succeeded
 
 See the [docs quickstart](https://privateassets.readthedocs.io/en/latest/quickstart.html) for the complete inputs and call, included from [`examples/first_success.py`](examples/first_success.py).
 
-## Core workflows
+## Examples
 
-See the [core workflows guide](https://privateassets.readthedocs.io/en/latest/workflows.html).
+### Highlighted examples
 
-Loading fits accept `ExpertPrior` to centre a selected factor on its weighted
-univariate regression and impose a sign-oriented uncertainty floor. The returned
-`PriorDiagnostics` makes that convention inspectable, and the loading bootstrap
-re-estimates it on each draw. This reproduces an expert loading rule; the floor
-does not establish that the multifactor exposure is well identified.
-
-## Unsmoothing
-
-Appraisal NAVs are reported with a lag and anchored to the previous mark, so
-reported returns are a moving average of true ones. Estimate the AR(1)
-coefficient across a panel of funds here, then apply it with `qis`:
+**Unsmoothing.** Appraisal NAVs are reported with a lag and anchored to the previous mark, so
+reported returns are a moving average of true ones. Estimate the AR(1) coefficient across a
+panel of funds here, then apply it with `qis`:
 
 ```python
 import qis
@@ -133,33 +204,21 @@ result = fit_panel_ar1(demeaned_series_by_fund)
 unsmoothed = qis.unsmooth_returns_glm(returns, ar_order=1, theta=result['theta_hat'])
 ```
 
-The inversion itself is `qis.unsmooth_returns_glm`. This package does not carry a
-second copy of it.
+The inversion itself is `qis.unsmooth_returns_glm`. This package does not carry a second copy of
+it. **The estimate is biased down by two separate mechanisms, and only one is correctable.**
+Demeaning a short AR(1) biases the coefficient by about `-(1 + 3θ)/n`; pass
+`bias_correction=BiasCorrection.BOOTSTRAP` to remove it — a parametric simulation from the
+fitted model, which cuts mean absolute error by roughly an order of magnitude and handles
+heterogeneous series lengths that the analytic `KENDALL` formula only approximates. What remains
+is measurement error: Modified Dietz returns are noisiest while capital is still being called,
+and error in a regressor attenuates its coefficient. On the end-to-end synthetic panel with a
+true θ of 0.30, the raw estimate is 0.161, correcting the demeaning bias gives 0.196, and the
+remaining 0.104 is measurement error that no small-sample correction reaches. It is the larger
+of the two. Corrections are off by default and `theta_raw` is always reported.
 
-**The estimate is biased down by two separate mechanisms, and only one is
-correctable.**
-
-Demeaning a short AR(1) biases the coefficient by about `-(1 + 3θ)/n`. Pass
-`bias_correction=BiasCorrection.BOOTSTRAP` to remove it — a parametric
-simulation from the fitted model, which cuts mean absolute error by roughly an
-order of magnitude and handles heterogeneous series lengths that the analytic
-`KENDALL` formula only approximates.
-
-What remains is measurement error. Modified Dietz returns are noisiest while
-capital is still being called, and error in a regressor attenuates its
-coefficient. On the end-to-end synthetic panel with a true θ of 0.30, the raw
-estimate is 0.161, correcting the demeaning bias gives 0.196, and the remaining
-0.104 is measurement error that no small-sample correction reaches. It is the
-larger of the two.
-
-Corrections are off by default and `theta_raw` is always reported.
-
-## Comparing against the single-factor incumbents
-
-`kn24_benchmark_deflator` and `kn16_gpme_deflator` price the same cash flows
-against one market index, so the multi-factor result can be reported next to
-what it replaces. Both take the equity factor as an excess log return and add
-the risk-free leg back where the economics needs a total return.
+**Comparing against the single-factor incumbents.** `kn24_benchmark_deflator` and
+`kn16_gpme_deflator` price the same cash flows against one market index, so the multi-factor
+result can be reported next to what it replaces:
 
 ```python
 from privateassets.matf import kn16_gpme_deflator, kn16_sdf_params
@@ -172,9 +231,7 @@ kn_deflators = kn16_gpme_deflator(cf_dates=dates, t0=dates[0],
 kn_alpha = vintage_direct_alpha(cf_v, rvpi_nav, dates, kn_deflators)
 ```
 
-## Inference
-
-Loadings are resampled in blocks through `qis`, with the asset and its factors
+**Inference.** Loadings are resampled in blocks through `qis`, with the asset and its factors
 resampled together:
 
 ```python
@@ -185,102 +242,49 @@ boot = bootstrap_factor_betas(asset_returns, factor_returns,
 print(boot.lower, boot.upper, boot.qis_version)
 ```
 
-`share_at_zero` reports how often a sign constraint binds. It is not a p-value:
-under a binding constraint the mass sits on the boundary, so the quantity tracks
-the constraint, not the evidence.
+`share_at_zero` reports how often a sign constraint binds. It is not a p-value: under a binding
+constraint the mass sits on the boundary, so the quantity tracks the constraint, not the
+evidence.
 
-## Conventions
+### Runnable examples
 
-See the [conventions guide](https://privateassets.readthedocs.io/en/latest/conventions.html).
+- [`examples/first_success.py`](examples/first_success.py) — the minimal offline KS-PME
+  calculation on synthetic values, using only core dependencies; the
+  [docs quickstart](https://privateassets.readthedocs.io/en/latest/quickstart.html) includes it.
 
-## Dependencies
+The [core workflows guide](https://privateassets.readthedocs.io/en/latest/workflows.html) carries
+the end-to-end multi-factor alpha workflow from fund reporting to `estimate_matf_alpha`.
 
-Built on [`qis`](https://pypi.org/project/qis/) for unsmoothing, covariance
-estimation and resampling, and optionally on
-[`factorlasso`](https://pypi.org/project/factorlasso/) for sign-constrained
-shrinkage betas. It does not depend on `optimalportfolios`, which is a sibling.
-
-**Licence note.** This package is MIT. On the current development branch, the
-`factors` extra requires `factorlasso>=1.0.4.post1`, the first verified MIT
-FactorLasso release. Earlier published GPL FactorLasso releases retain their
-licences. The core PME and deflator paths remain usable without FactorLasso.
-Dependencies retain their own licences and notices; this does not make the
-entire installed environment MIT.
-
-The reviewed Windows core and factors environments include native libraries and
-headers under separate terms, including the GCC Runtime Library Exception,
-Microsoft Visual C++ redistributable terms and NVIDIA CUDA header terms bundled
-with Numba. CPU calculations do not require a CUDA backend or runtime. The
-[supplemental third-party notices](THIRD_PARTY_NOTICES.md) retain identified
-OpenBLAS/LAPACK notices; they do not certify redistribution of an entire
-environment or other platforms and versions.
-
-## Data
-
-No data ships with this repository, and none may be added. Every input is licensed and read from a
-path you supply. Fund-level analysis requires user-supplied cash flows and NAVs; classical PME also
-needs benchmark levels, while MATF estimation needs factor levels and a matching risk-free-rate
-series. See [`DATA_README.md`](DATA_README.md).
-
-## Paper workspaces
-
-The [paper index](papers/README.md) describes the local research workspaces and
-their six-section layout. All paper folders remain local and Git-ignored,
-including summaries, manuscripts, replication code, tests and data. Only the
-shared paper policy and index are tracked.
-
-## Tests
+## Testing
 
 ```bash
 uv sync --locked --group test
 uv run --no-sync pytest
 uv sync --locked --group test --extra factors
 uv run --no-sync pytest
+uv run --locked --only-group lint ruff check src/privateassets tests examples docs/conf.py
 ```
 
 The suite uses no network or data files. `tests/synthetic_data.py` draws a seeded panel carrying
 the defects real panels carry: irregular cash-flow dates, a J-curve, unrealised residual NAVs, and
-a factor panel that starts after the first fund does.
+a factor panel that starts after the first fund does. Tests needing the `[factors]` extra skip
+rather than fail, so a core install stays green. Enforcement tests fail the suite if package
+imports have filesystem side effects, documentation drifts from signatures, proprietary
+identifiers or competing-stack imports enter the package, release metadata diverges, or
+automated tests, development runners, production modules and built distributions cross their
+declared boundaries. Development runners (`src/privateassets/run/<subject>_local.py`, excluded
+from distributions) are described in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-Tests needing the `[factors]` extra skip rather than fail, so a core install
-stays green.
+## Changelog
 
-Component development runners belong in `src/privateassets/run/<subject>_local.py`.
-Each runner exposes `Locals` and `run_local(local=...)`; the `run/` directory has
-no `__init__.py` and is excluded from wheels and source distributions. Automated
-checks remain in `tests/test_*.py`, and production modules never
-import development runners.
+Release history is maintained in [CHANGELOG.md](CHANGELOG.md).
 
-Enforcement tests fail the suite if package imports have filesystem side effects,
-documentation drifts from signatures, proprietary identifiers or competing-stack
-imports enter the package, release metadata diverges, or automated tests,
-development runners, production modules and built distributions cross their
-declared boundaries.
+## Feedback & contributing <a name="feedback-contributing"></a>
 
-## Status
-
-`0.8.0` runs from fund reporting to alpha in one call, and each stage is usable
-on its own. The reporting and factsheet layer is not in this release. See
-`CHANGELOG.md`.
-
-Two caveats travel with every number and are recorded in `provenance`: the
-loadings are in-sample, and the smoothing coefficient is attenuated by
-measurement noise in the J-curve period even after bias correction.
-
-## Ecosystem
-
-`privateassets` uses [`qis`](https://github.com/ArturSepp/QuantInvestStrats) for time-series
-analytics and resampling. The optional `factors` extra adds
-[`factorlasso`](https://github.com/ArturSepp/factorlasso) for sign-constrained shrinkage betas.
-[`optimalportfolios`](https://github.com/ArturSepp/OptimalPortfolios) is a sibling for portfolio
-construction, not a dependency. The [ArturSepp profile](https://github.com/ArturSepp)
-is the canonical ten-package catalogue.
-
-## Feedback & contributing
-
-- [Report a reproducible bug](https://github.com/ArturSepp/privateassets/issues/new?template=bug_report.yml), using synthetic or anonymised inputs and including the package version, Python/platform, and expected versus actual result.
-- [Request a feature](https://github.com/ArturSepp/privateassets/issues/new?template=feature_request.yml), explaining which fund-reporting convention or benchmark input is blocking adoption, the current workaround, and the smallest useful API.
-- Read [CONTRIBUTING.md](CONTRIBUTING.md) for the public-data boundary, development commands, numerical-change rules, and pull-request guidance.
+- **Bug:** [report a reproducible bug](https://github.com/ArturSepp/privateassets/issues/new?template=bug_report.yml), using synthetic or anonymised inputs and including the package version, Python/platform, and expected versus actual result.
+- **Feature:** [request a feature](https://github.com/ArturSepp/privateassets/issues/new?template=feature_request.yml), explaining which fund-reporting convention or benchmark input is blocking adoption, the current workaround, and the smallest useful API.
+- **Question or methodology:** search or open an [issue](https://github.com/ArturSepp/privateassets/issues) and name the measure, convention, or deflator involved.
+- **Contribution:** read [CONTRIBUTING.md](CONTRIBUTING.md) for the public-data boundary, development commands, numerical-change rules, and pull-request guidance.
 
 ## Citation
 
@@ -297,8 +301,39 @@ citation is:
 }
 ```
 
+[TODO: add the methods paper entry once it is public.]
+
+## Ecosystem
+
+This package is part of an open-source Python stack for quantitative finance. The
+[ArturSepp profile](https://github.com/ArturSepp) is the canonical catalogue:
+
+| Package | Purpose |
+|---|---|
+| [`qis`](https://github.com/ArturSepp/QuantInvestStrats) | Performance analytics, backtesting, and factsheet reporting |
+| [`optimalportfolios`](https://github.com/ArturSepp/OptimalPortfolios) | Portfolio construction and rolling backtesting |
+| [`factorlasso`](https://github.com/ArturSepp/factorlasso) | Sparse factor-model estimation |
+| [`bbg-fetch`](https://github.com/ArturSepp/BloombergFetch) | Bloomberg data in pandas DataFrames |
+| [`option-chain-analytics`](https://github.com/ArturSepp/OptionChainAnalytics) | Point-in-time option-chain data and queries |
+| [`vanilla-option-pricers`](https://github.com/ArturSepp/VanillaOptionPricers) | Numba-vectorised BSM and Bachelier pricing |
+| [`stochvolmodels`](https://github.com/ArturSepp/StochVolModels) | Stochastic-volatility pricing and calibration |
+| [`trendfollowing`](https://github.com/ArturSepp/TrendFollowingSystems) | Closed-form trend-following analytics |
+| [`privateassets`](https://github.com/ArturSepp/privateassets) *(this package)* | Multi-factor PME for private assets |
+| [`goal-based-allocation`](https://github.com/ArturSepp/GoalBasedAllocation) | Goal-based allocation under regime-switching jump-diffusions |
+
+`privateassets` uses `qis` for time-series analytics and resampling. The optional `factors`
+extra adds `factorlasso` for sign-constrained shrinkage betas. `optimalportfolios` is a sibling
+for portfolio construction, not a dependency.
+
 ## License
 
 This project is licensed under the MIT License; see [`LICENSE.txt`](LICENSE.txt).
 The optional FactorLasso version floor and dependency notices are described under
-[Dependencies](#dependencies).
+[Installation](#installation).
+
+## Disclaimer
+
+`privateassets` is distributed FREE & WITHOUT ANY WARRANTY under the MIT License. See
+[LICENSE.txt](LICENSE.txt) in the release for details. Use the routes in
+[Feedback & contributing](#feedback-contributing) for bugs, feature requests and
+methodology questions.
