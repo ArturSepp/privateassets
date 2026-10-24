@@ -1,8 +1,8 @@
 # Committing with GitHub Desktop
 
-*Author: [Artur Sepp](https://github.com/ArturSepp)*
+*Author: [Artur Sepp](https://github.com/ArturSepp) / First recorded: [2026-09-21](https://github.com/ArturSepp/privateassets/commit/df6ac2c62eb9f0ef234471e26cd483642e39fc7e)*
 
-Project: [privateassets](https://github.com/ArturSepp/privateassets).
+Implemented in [privateassets](https://github.com/ArturSepp/privateassets).
 Software citation: [CITATION.cff](https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff).
 
 Create a working branch, select the intended changes, and commit normally. The installed
