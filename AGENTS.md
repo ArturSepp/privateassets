@@ -49,7 +49,7 @@ uv run --locked --only-group lint ruff check src/privateassets tests examples do
 ```
 
 Both environments must be green before a change lands. CI runs the pair on Linux
-3.10–3.14 and authoritative Windows/macOS 3.12 cells, and asserts whether
+3.11–3.14 and authoritative Windows/macOS 3.12 cells, and asserts whether
 `factorlasso` is importable: a failed optional install otherwise degrades silently
 into a green run over two thirds of the suite, which is what happened for several
 weeks before 0.6.1.

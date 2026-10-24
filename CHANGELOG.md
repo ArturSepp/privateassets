@@ -4,12 +4,19 @@
 
 ### Changed
 
+- Raised the minimum supported Python version to 3.11, aligning package metadata,
+  CI and lowest-direct dependency tests with QIS. Regenerated the dependency lock.
 - The optional `factors` extra now requires `factorlasso>=1.0.4.post1`, the first
   verified MIT FactorLasso release. Core installs remain independent of the
   optional estimator. Historical GPL releases retain their licences; numerical
   implementations and public signatures are unchanged.
 - Ship supplemental OpenBLAS/LAPACK notices identified in the reviewed Windows
   factors environment; preserve the native libraries' separate licence terms.
+
+### Fixed
+
+- Recognize GitHub's `user-content-` heading aliases in the CI reference checker,
+  including redirects to GitHub, while retaining exact anchor matching on other hosts.
 
 ## [0.8.0] - 2026-10-14
 

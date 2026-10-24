@@ -10,7 +10,7 @@ import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import unquote, urldefrag
+from urllib.parse import unquote, urldefrag, urlsplit
 from urllib.request import Request, urlopen
 
 MAX_BODY = 4 * 1024 * 1024
@@ -67,12 +67,17 @@ def inspect_url(url):
                 kind = response.headers.get("Content-Type", "")
                 if not fragment or "html" not in kind:
                     return {"url": url, "status": "ok"}
+                github_page = urlsplit(response.geturl()).hostname == "github.com"
                 body = response.read(MAX_BODY + 1)
             if len(body) > MAX_BODY:
                 return {"url": url, "status": "deferred", "reason": "large HTML requires review"}
             parser = Anchors()
             parser.feed(body.decode("utf-8", "replace"))
-            if unquote(fragment) in parser.names:
+            candidates = {unquote(fragment)}
+            if github_page:
+                # GitHub exposes heading fragments through user-content-prefixed HTML IDs.
+                candidates.add(f"user-content-{unquote(fragment)}")
+            if candidates & parser.names:
                 return {"url": url, "status": "ok"}
             last = f"static anchor #{fragment} not found"
         except HTTPError as error:

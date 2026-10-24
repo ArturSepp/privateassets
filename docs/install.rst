@@ -11,6 +11,10 @@ Author: `Artur Sepp <https://github.com/ArturSepp>`_ / First recorded:
 Implemented in `privateassets <https://github.com/ArturSepp/privateassets>`_.
 Software citation: `CITATION.cff <https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff>`_.
 
+The current development branch requires Python 3.11 or newer, matching QIS's
+supported Python range. This minimum will ship in the next privateassets release;
+older releases retain their published Python requirements.
+
 Install the core package from PyPI:
 
 .. code-block:: console

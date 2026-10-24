@@ -26,7 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: ubuntu-latest, python-version: "3.10"}
           - {os: ubuntu-latest, python-version: "3.11"}
           - {os: ubuntu-latest, python-version: "3.12", primary: true}
           - {os: ubuntu-latest, python-version: "3.13"}
@@ -191,7 +190,7 @@ jobs:
   lowest-dependencies:
     # Floor resolution is compatibility maintenance, not a verdict on an unrelated edit.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    name: lowest direct dependencies (Python 3.10, ${{ matrix.extras || 'core' }})
+    name: lowest direct dependencies (Python 3.11, ${{ matrix.extras || 'core' }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -202,12 +201,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - name: Keep the test environment outside the checkout
         run: echo "UV_PROJECT_ENVIRONMENT=$RUNNER_TEMP/lowest-dependencies" >> "$GITHUB_ENV"
       - name: Resolve a fresh lowest-direct test environment
         # Upgrade ignores lockfile preference; this job never commits its experimental lock.
-        run: uv sync --python 3.10 --resolution lowest-direct --upgrade --group test ${{ matrix.extras }}
+        run: uv sync --python 3.11 --resolution lowest-direct --upgrade --group test ${{ matrix.extras }}
       - name: Record installed versions
         run: uv pip freeze --python "$UV_PROJECT_ENVIRONMENT/bin/python"
       - name: Check optional dependencies stay outside package-root import
