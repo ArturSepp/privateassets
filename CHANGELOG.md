@@ -15,6 +15,8 @@
 
 ### Fixed
 
+- Updated locked Pillow, Certifi and Setuptools to remediate the core and optional
+  dependency vulnerabilities reported by the security audit.
 - Recognize GitHub's `user-content-` heading aliases in the CI reference checker,
   including redirects to GitHub, while retaining exact anchor matching on other hosts.
 
