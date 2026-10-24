@@ -24,14 +24,15 @@ def _load_conf() -> dict:
 @pytest.mark.parametrize(
     ("service_url", "canonical_url"),
     [
-        # stable and latest serve the same pages, so both name latest as canonical
-        ("https://privateassets.readthedocs.io/en/stable/", LATEST),
+        # Each source channel keeps its canonical URL.
+        ("https://privateassets.readthedocs.io/en/stable/",
+         "https://privateassets.readthedocs.io/en/stable/"),
         (LATEST, LATEST),
         ("https://privateassets.readthedocs.io/en/0.7.0/", "https://privateassets.readthedocs.io/en/0.7.0/"),
     ],
 )
-def test_stable_builds_name_latest_as_canonical(monkeypatch, service_url, canonical_url) -> None:
-    """a stable build points its canonical URLs at latest; numbered versions keep theirs."""
+def test_builds_preserve_channel_canonical(monkeypatch, service_url, canonical_url) -> None:
+    """stable, latest and numbered builds retain their own source URLs."""
     monkeypatch.setenv("READTHEDOCS_CANONICAL_URL", service_url)
     assert _load_conf()["html_baseurl"] == canonical_url
 

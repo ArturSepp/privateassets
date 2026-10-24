@@ -1,5 +1,10 @@
 # Data — licensed, never committed
 
+*Author: [Artur Sepp](https://github.com/ArturSepp) / First recorded: [2026-06-28](https://github.com/ArturSepp/privateassets/commit/37e8fee827a5d5630398cbf20dfdb3b5df876181)*
+
+Implemented in [privateassets](https://github.com/ArturSepp/privateassets).
+Software citation: [CITATION.cff](https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff).
+
 **No data files are stored in this repository, and none may be added.** Every
 input is obtained under licence and read from a path you supply. `data/` is
 git-ignored in full.

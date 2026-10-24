@@ -1,5 +1,10 @@
 # Contributing to privateassets
 
+*Author: [Artur Sepp](https://github.com/ArturSepp) / First recorded: [2026-07-28](https://github.com/ArturSepp/privateassets/commit/44d705027e530c3ec04b1207b28aecc3b757faed)*
+
+Implemented in [privateassets](https://github.com/ArturSepp/privateassets).
+Software citation: [CITATION.cff](https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff).
+
 Thanks for your interest in `privateassets`. The package estimates risk-adjusted alpha and factor
 exposures from private-asset cash flows, so a change here can move a number in a published table.
 Read the licence note below before you start: this repository is MIT, and the development
@@ -49,6 +54,51 @@ the full traceback or the incorrect numbers. Cash-flow data is usually confident
 
 Open an issue and describe what you are trying to do. Questions about methodology are welcome;
 where a question is really about the working paper, please say which section you are reading.
+
+## Starter tasks
+
+These are bounded proposals, not assigned issues or confirmed defects. Recheck source and open
+work before agreeing one task. Use the existing [feature form](https://github.com/ArturSepp/PrivateAssets/issues/new?template=feature_request.yml),
+Area **Documentation or example**. Include the task ID, owner, exact paths, reproduction, acceptance and focused
+check under Proposed behavior; retain required boundary checkboxes. Use the bug form only for
+observed incorrect behaviour. Keep numerical code, public signatures, dependencies, fixtures and
+canonical examples unchanged for these documentation tasks.
+
+### PA-1: clarify PME inputs
+
+Owner: PrivateAssets. Edit only `docs/quickstart.rst` to clarify one observed cash-flow-sign or terminal-NAV ambiguity. Acceptance: distinguish contributed capital, distributions, residual NAV and dimensionless PME without changing the example or estimator.
+
+```console
+python examples/first_success.py
+python -m pytest tests/test_pme.py -q
+```
+
+### PA-2: explain optional factor setup
+
+Owner: PrivateAssets. Edit only `docs/install.rst` to clarify one core-versus-factors setup ambiguity. Acceptance: a reader can run core PME without FactorLasso and identify when the optional extra is needed; do not add an import or dependency.
+
+```console
+python -m pytest tests/test_public_api.py -k factorlasso -q
+```
+
+### PA-3: check release navigation
+
+Owner: PrivateAssets. Edit only `docs/quickstart.rst` to clarify one released-versus-main boundary. Acceptance: retain the pinned canonical example, old page anchor and private-data boundary, with no changes to computed results.
+
+```console
+python -m pytest tests/test_docs_site.py -q
+```
+
+Run the package's existing strict HTML command after a documentation edit and inspect the
+changed passage. On the maintainer's OneDrive checkout, dot-source the shared
+`Enter-AgentRepo.ps1` first and use `C:\Python\PrivateAssets312\Scripts\python.exe`.
+Keep exports, caches, builds and run output on C. The `uv` setup below is for ordinary contributor
+checkouts outside OneDrive; never create `.venv` in the synchronized checkout.
+
+Follow the [shared review guidance](https://github.com/ArturSepp/ArturSepp/blob/main/docs/contributing_to_stack.md#review-attribution-and-automation-assisted-changes).
+Record the revision, actual versions, exact checks and skips, rendered review and material
+automation assistance. Preserve MIT core and the optional FactorLasso boundary licensing and attribution. Automated checks do not
+establish independent reader success. Review time and acceptance are not promised.
 
 ## Development setup
 

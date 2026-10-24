@@ -1,5 +1,10 @@
 # privateassets
 
+*Author: [Artur Sepp](https://github.com/ArturSepp) / First recorded: [2026-06-28](https://github.com/ArturSepp/privateassets/commit/37e8fee827a5d5630398cbf20dfdb3b5df876181)*
+
+Implemented in [privateassets](https://github.com/ArturSepp/privateassets).
+Software citation: [CITATION.cff](https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff).
+
 **Multi-factor money-weighted PME for private-asset cash flows: risk-adjusted alpha and factor exposures**
 
 You supply fund cash flows and NAVs together with benchmark levels for classical PME, or factor

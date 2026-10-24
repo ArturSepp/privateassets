@@ -29,6 +29,14 @@ sibling of `optimalportfolios`, not a child: it depends on `qis`, optionally on
   update common rules in the shared guide instead of maintaining another copy.
 - Linking the standard does not mark legacy pages migrated or reviewed. Preserve explicit
   pending work and record checks actually performed.
+- Keep site pages in native RST. Every human-authored reader page, including the README,
+  contribution guide and data guide, uses the linked Artur Sepp author/date header followed by
+  the repository and software-citation block shown in `docs/api.rst`. Use the canonical
+  `https://github.com/ArturSepp/privateassets` repository and its `blob/main/CITATION.cff` link;
+  Markdown guides express the same links in Markdown.
+- Each First recorded date uses that page's earliest verified committer date and links its full
+  commit SHA, following renames and earlier source formats. Confirm that the commit contains
+  the source. A new uncommitted page keeps the author-only byline until commit evidence exists.
 
 ## Build and test
 

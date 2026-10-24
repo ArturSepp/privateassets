@@ -5,11 +5,11 @@
 Installation
 ============
 
-*Author:* `Artur Sepp <https://github.com/ArturSepp>`_ / *First recorded:*
-`2026-08-23 <https://github.com/ArturSepp/PrivateAssets/commit/09b9d8b927190680ba40b6c07834ab8f714bfae4>`_.
+Author: `Artur Sepp <https://github.com/ArturSepp>`_ / First recorded:
+`2026-08-23 <https://github.com/ArturSepp/privateassets/commit/09b9d8b927190680ba40b6c07834ab8f714bfae4>`_.
 
-Source: `PrivateAssets <https://github.com/ArturSepp/PrivateAssets>`_.
-Software citation: `CITATION.cff <https://github.com/ArturSepp/PrivateAssets/blob/main/CITATION.cff>`_.
+Implemented in `privateassets <https://github.com/ArturSepp/privateassets>`_.
+Software citation: `CITATION.cff <https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff>`_.
 
 Install the core package from PyPI:
 

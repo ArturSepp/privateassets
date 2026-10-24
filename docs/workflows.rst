@@ -6,10 +6,11 @@
 Core workflows
 ==============
 
-*Author:* `Artur Sepp <https://github.com/ArturSepp>`_
+Author: `Artur Sepp <https://github.com/ArturSepp>`_ / First recorded:
+`2026-09-08 <https://github.com/ArturSepp/privateassets/commit/e9092d6160951fab1a7ccc814d994200bcdd4e48>`_.
 
-Software: `privateassets <https://github.com/ArturSepp/privateassets>`_;
-`citation metadata <https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff>`_.
+Implemented in `privateassets <https://github.com/ArturSepp/privateassets>`_.
+Software citation: `CITATION.cff <https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff>`_.
 
 Classical single-benchmark measures take a tidy cash-flow frame and a benchmark
 index level series:

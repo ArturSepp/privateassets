@@ -5,6 +5,12 @@
 Conventions
 ===========
 
+Author: `Artur Sepp <https://github.com/ArturSepp>`_ / First recorded:
+`2026-09-08 <https://github.com/ArturSepp/privateassets/commit/e9092d6160951fab1a7ccc814d994200bcdd4e48>`_.
+
+Implemented in `privateassets <https://github.com/ArturSepp/privateassets>`_.
+Software citation: `CITATION.cff <https://github.com/ArturSepp/privateassets/blob/main/CITATION.cff>`_.
+
 - Factor inputs are **excess** log returns. The risk-free rate enters the
   deflator once, through its own term.
 - Covariance is **point-in-time**: the matrix at a quarter end uses only returns
