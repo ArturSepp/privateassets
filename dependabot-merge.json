@@ -1,1 +1,1 @@
-{"notifications": {}, "repository": "ArturSepp/privateassets", "schema_version": 1}
+{"notifications": {"c467ede7f9ae1c2d7cc88c137d1104369cf182da5557c5f75cf8d01934bd106a": {"details": ["Optional extras (advisory): failure"], "head": "10c859037e9f13437427b20b155672d5537d2263", "kind": "failed", "phase": "posting", "pr": 24}}, "repository": "ArturSepp/privateassets", "schema_version": 1}
