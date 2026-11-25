@@ -24,6 +24,8 @@ extensions = [
     'sphinx.ext.napoleon',
 ]
 exclude_patterns = ['_build']
+# Retry transient HTTP errors before reporting an external URL as broken.
+linkcheck_retries = 3
 # _templates/base.html titles pages other than the homepage "<page title> - privateassets".
 templates_path = ['_templates']
 autodoc_typehints = 'description'
