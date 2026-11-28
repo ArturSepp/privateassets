@@ -14,9 +14,11 @@ this index and the shared [paper contract](AGENTS.md) are tracked.
 | Track | Working title | Scope | Current status |
 |---|---|---|---|
 | `multi_factor_direct_alpha` | A Multi-Factor Money-Weighted Alpha for Private Capital | The methods paper. The multi-factor money-weighted deflator, its theory and inference, a Monte Carlo study, and cohort-level empirics. Named object: the MATF deflator (`privateassets.matf.matf_deflator`). | Workspace created 2026-10-13, to draft |
-| `jfqa_matf_pme` | — | Earlier workspace for the same methods paper | Superseded by `multi_factor_direct_alpha`, to be retired once its records move |
 | `faj_application` | — | The application paper. Manager skill dispersion, manager and vintage selection, and the allocation consequences, on fund-level cash flows. Cites the estimator rather than restating it. | To draft, gated on fund-level data being licensable for central use and for publication |
-| `matf_alpha` | MATF-alpha | The single-manager precursor manuscript and its review rounds | Internal, migrated 2026-09-27, no venue |
+| `matf_alpha_internal` | MATF-alpha | The single-manager precursor manuscript and its review rounds | Internal use only, renamed from `matf_alpha` on 2026-11-21, no venue. Its scope is merged into `faj_application`. |
+
+The earlier methods-paper workspace `jfqa_matf_pme` was retired on 2026-11-20.
+Its records are in `multi_factor_direct_alpha`.
 
 Each workspace follows [AGENTS.md](AGENTS.md): `paper`, `drafts`, `presentations`,
 `private`, `replication` and `agents`. Every section and all future paper folders
